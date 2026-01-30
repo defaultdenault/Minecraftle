@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraftle - Minecraft Recipe Guessing Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --mc-brown: #8B7355;
+            --mc-dark-brown: #6B5845;
+            --mc-light: #C6B9A5;
+            --mc-green: #90EE90;
+            --mc-yellow: #FFD700;
+            --mc-gray: #8B8B8B;
+            --mc-black: #1A1A1A;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Press Start 2P', 'Minecraft', monospace, sans-serif;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: var(--mc-black);
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.3);
+            margin-bottom: 10px;
+        }
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .mode-btn {
+            padding: 12px 24px;
+            font-size: 1em;
+            background: var(--mc-brown);
+            border: 4px solid var(--mc-dark-brown);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .mode-btn:hover {
+            background: var(--mc-dark-brown);
+            transform: translateY(-2px);
+        }
+        .mode-btn.active {
+            background: var(--mc-dark-brown);
+            border-color: var(--mc-black);
+        }
+        .game-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.8);
+            border: 3px solid var(--mc-dark-brown);
+            border-radius: 5px;
+        }
+        .stats {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            font-size: 1.1em;
+        }
+        .crafting-area {
+            background: var(--mc-brown);
+            border: 8px solid var(--mc-dark-brown);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            margin-bottom: 30px;
+        }
+        .crafting-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(3, 80px);
+            gap: 8px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        .craft-slot {
+            width: 80px;
+            height: 80px;
+            background: var(--mc-light);
+            border: 4px solid var(--mc-dark-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            overflow: hidden;
+        }
+        .craft-slot:hover {
+            background: #D6C9B5;
+        }
+        .craft-slot canvas, .craft-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .craft-slot.correct {
+            background: var(--mc-green);
+        }
+        .craft-slot.wrong-position {
+            background: var(--mc-yellow);
+        }
+        .craft-slot.wrong {
+            background: var(--mc-gray);
+        }
+        .craft-slot.close {
+            background: #6BB5FF;
+        }
+        body.holding-item {
+            cursor: grabbing !important;
+        }
+        body.holding-item .craft-slot {
+            cursor: grabbing;
+        }
+        body.holding-item .craft-slot:hover {
+            background: #B8E0B8;
+            border-color: #5a8f3a;
+        }
+        .result-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-slot {
+            width: 80px;
+            height: 80px;
+            background: var(--mc-light);
+            border: 4px solid var(--mc-dark-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .result-slot canvas, .result-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .arrow {
+            font-size: 3em;
+            color: var(--mc-dark-brown);
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .action-btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            background: #4CAF50;
+            border: 4px solid #45a049;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .action-btn:hover:not(:disabled) {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+        .action-btn:disabled {
+            background: var(--mc-gray);
+            border-color: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .clear-btn {
+            background: #f44336;
+            border-color: #da190b;
+        }
+        .clear-btn:hover:not(:disabled) {
+            background: #da190b;
+        }
+        .item-selector {
+            background: rgba(255,255,255,0.95);
+            border: 6px solid var(--mc-dark-brown);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .category-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .category-tab {
+            padding: 10px 20px;
+            background: var(--mc-brown);
+            border: 3px solid var(--mc-dark-brown);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9em;
+        }
+        .category-tab:hover {
+            background: var(--mc-dark-brown);
+        }
+        .category-tab.active {
+            background: var(--mc-dark-brown);
+            border-color: var(--mc-black);
+        }
+        .category-tab.has-ingredient {
+            background: linear-gradient(to bottom, #5a8f3a 0%, #3d6b27 100%);
+            border-color: #2d5a1a;
+            box-shadow: 0 0 8px rgba(90, 143, 58, 0.6);
+        }
+        .category-tab.has-ingredient:hover {
+            background: linear-gradient(to bottom, #4a7f2a 0%, #2d5b17 100%);
+        }
+        .category-tab.has-ingredient.active {
+            background: linear-gradient(to bottom, #4a7f2a 0%, #2d5b17 100%);
+            border-color: var(--mc-black);
+        }
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(255,255,255,0.5);
+            border: 2px solid var(--mc-dark-brown);
+        }
+        .item-option {
+            width: 60px;
+            height: 60px;
+            background: var(--mc-light);
+            border: 3px solid var(--mc-dark-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            font-size: 0.6em;
+            text-align: center;
+            padding: 2px;
+        }
+        .item-option:hover {
+            background: #D6C9B5;
+            transform: scale(1.1);
+        }
+        .item-option.correct {
+            background: var(--mc-green);
+        }
+        .item-option.correct:hover {
+            background: #7ade7a;
+        }
+        .item-option.wrong-position {
+            background: var(--mc-yellow);
+        }
+        .item-option.wrong-position:hover {
+            background: #e6c200;
+        }
+        .item-option.wrong {
+            background: var(--mc-gray);
+        }
+        .item-option.wrong:hover {
+            background: #7a7a7a;
+        }
+        .item-option.close {
+            background: #6BB5FF;
+        }
+        .item-option.close:hover {
+            background: #5aa5ef;
+        }
+        .item-option canvas, .item-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+        }
+        .item-option.dragging {
+            opacity: 0.5;
+        }
+        .drag-preview {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            width: 60px;
+            height: 60px;
+            background: var(--mc-light);
+            border: 3px solid var(--mc-dark-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            cursor: grabbing;
+            overflow: hidden;
+        }
+        .drag-preview canvas, .drag-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        body.dragging {
+            cursor: grabbing !important;
+        }
+        /* Minecraft-style tooltip */
+        .mc-tooltip {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10001;
+            padding: 6px 8px;
+            background: #100010;
+            border: 2px solid #25002a;
+            border-image: linear-gradient(to bottom, #5000a0 0%, #28007f 100%) 1;
+            box-shadow: 
+                inset 0 0 0 1px #100010,
+                0 0 0 1px #100010;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            color: #ffffff;
+            white-space: nowrap;
+            display: none;
+            text-shadow: 2px 2px 0px #3f3f3f;
+            image-rendering: pixelated;
+        }
+        .mc-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid;
+            border-image: linear-gradient(to bottom, #5000a0, #28007f) 1;
+            pointer-events: none;
+        }
+        .mc-tooltip.show {
+            display: block;
+        }
+        .previous-guesses {
+            background: rgba(255,255,255,0.9);
+            border: 4px solid var(--mc-dark-brown);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .previous-guesses h3 {
+            margin-bottom: 15px;
+            color: var(--mc-black);
+        }
+        .guess-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(139, 115, 85, 0.2);
+            border-radius: 5px;
+        }
+        .guess-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 50px);
+            gap: 4px;
+        }
+        .guess-arrow {
+            font-size: 1.5em;
+            color: var(--mc-dark-brown);
+            padding: 0 5px;
+        }
+        .guess-output {
+            width: 50px;
+            height: 50px;
+            background: var(--mc-light);
+            border: 3px solid var(--mc-dark-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .guess-output canvas, .guess-output img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .guess-slot {
+            width: 50px;
+            height: 50px;
+            background: var(--mc-light);
+            border: 3px solid var(--mc-dark-brown);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .guess-slot canvas, .guess-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .guess-slot.correct {
+            background: var(--mc-green);
+        }
+        .guess-slot.wrong-position {
+            background: var(--mc-yellow);
+        }
+        .guess-slot.wrong {
+            background: var(--mc-gray);
+        }
+        .guess-slot.close {
+            background: #6BB5FF;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border: 8px solid var(--mc-dark-brown);
+            border-radius: 10px;
+            text-align: center;
+            max-width: 500px;
+        }
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: var(--mc-black);
+        }
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        .modal-btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            background: var(--mc-brown);
+            border: 4px solid var(--mc-dark-brown);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .modal-btn:hover {
+            background: var(--mc-dark-brown);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MINECRAFTLE</h1>
+            <div class="mode-buttons">
+                <button class="mode-btn active" data-mode="daily">Daily Challenge</button>
+                <button class="mode-btn" data-mode="random">Random Recipe</button>
+            </div>
+        </header>
+
+        <div class="game-info">
+            <div class="stats">
+                <div>Guesses: <span id="guessCount">0</span>/10</div>
+                <div id="dailyTimer" style="display:none;">Next Daily: <span id="timeRemaining">------</span></div>
+            </div>
+        </div>
+
+        <div class="crafting-area">
+            <div class="crafting-grid" id="craftingGrid">
+                <div class="craft-slot" data-slot="0"></div>
+                <div class="craft-slot" data-slot="1"></div>
+                <div class="craft-slot" data-slot="2"></div>
+                <div class="craft-slot" data-slot="3"></div>
+                <div class="craft-slot" data-slot="4"></div>
+                <div class="craft-slot" data-slot="5"></div>
+                <div class="craft-slot" data-slot="6"></div>
+                <div class="craft-slot" data-slot="7"></div>
+                <div class="craft-slot" data-slot="8"></div>
+            </div>
+            <div class="result-area">
+                <div class="arrow">→</div>
+                <div class="result-slot" id="resultSlot"></div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-btn" id="submitBtn">Submit Guess</button>
+                <button class="action-btn clear-btn" id="clearBtn">Clear</button>
+            </div>
+        </div>
+
+        <div class="item-selector">
+            <div class="category-tabs" id="categoryTabs"></div>
+            <div class="items-grid" id="itemsGrid"></div>
+        </div>
+
+        <div class="previous-guesses">
+            <h3>Previous Guesses</h3>
+            <div id="guessesList"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <h2 id="modalTitle"></h2>
+            <p id="modalMessage"></p>
+            <button class="modal-btn" id="modalBtn">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Minecraft-style tooltip -->
+    <div class="mc-tooltip" id="mcTooltip"></div>
+
+    <script>
+    // Cache bust parameter
+    const CACHE_BUST = '?v=' + Date.now();
+
+    // Cache for models and textures
+    const modelCache = {};
+    const textureCache = {};
+    const renderCache = {};
+
+    // Items that should use block texture (rendered as item style)
+    const BLOCK_TEXTURE_ONLY = new Set([
+        'oak_sapling', 'spruce_sapling', 'birch_sapling', 'jungle_sapling', 'acacia_sapling', 'dark_oak_sapling', 'cherry_sapling',
+        'poppy', 'blue_orchid', 'allium', 'azure_bluet', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip',
+        'oxeye_daisy', 'cornflower', 'lily_of_the_valley', 'wither_rose', 'dandelion', 'torchflower',
+        'warped_fungus', 'crimson_fungus',
+        'brown_mushroom', 'red_mushroom',
+        'rail', 'powered_rail', 'detector_rail', 'activator_rail',
+        'chest', 'trapped_chest',
+        'redstone_torch',
+        'lever',
+        'item_frame',
+        'glow_item_frame'
+    ]);
+
+    // Items that should use item texture
+    const ITEM_TEXTURE_ONLY = new Set([
+        'crossbow', 'comparator', 'campfire', 'soul_campfire', 'lantern', 'soul_lantern',
+        'tripwire_hook', 'torch', 'soul_torch', 'flower_pot'
+    ]);
+
+    // Trapdoor mapping
+    function getTrapdoorModel(name) {
+        const material = name.replace('_trapdoor', '');
+        return `${material}_trapdoor_bottom`;
+    }
+
+    // Piston texture overrides
+    const PISTON_TEXTURE_OVERRIDES = {
+        'piston': { 
+            'up': 'piston_top',
+            'down': 'piston_bottom',
+            'north': 'piston_side',
+            'south': 'piston_side',
+            'east': 'piston_side',
+            'west': 'piston_side'
+        },
+        'sticky_piston': { 
+            'up': 'piston_top_sticky',
+            'down': 'piston_bottom',
+            'north': 'piston_side',
+            'south': 'piston_side',
+            'east': 'piston_side',
+            'west': 'piston_side'
+        },
+        'beacon': {
+            'up': 'glass',
+            'down': 'beacon',
+            'north': 'beacon',
+            'south': 'beacon',
+            'east': 'beacon',
+            'west': 'beacon'
+        }
+    };
+
+    // Blocks that need grass-green tinting (tintindex: 0)
+    const TINTED_BLOCKS = new Set(['grass_block']);
+
+    // Robust texture path resolver
+    function resolveTexturePath(texturePath, texturesObject = {}) {
+        let resolved = texturePath;
+        if (texturePath.startsWith('#')) {
+            const varName = texturePath.substring(1);
+            resolved = texturesObject[varName] || texturePath;
+        }
+        if (resolved.startsWith('minecraft:')) {
+            resolved = resolved.substring(10);
+        }
+        let filePath = '';
+        if (resolved.includes('/')) {
+            filePath = `media/textures/${resolved}.png${CACHE_BUST}`;
+        } else {
+            filePath = `media/textures/block/${resolved}.png${CACHE_BUST}`;
+        }
+        return filePath;
+    }
+
+    // Hybrid renderer
+    class HybridRenderer {
+        constructor() {
+            this.textureLoader = new THREE.TextureLoader();
+            this.canvas = document.createElement('canvas');
+            this.canvas.width = 48;
+            this.canvas.height = 48;
+            this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
+            this.renderer.setPixelRatio(1);
+
+            // Brighten and add contrast
+            this.renderer.outputEncoding = THREE.sRGBEncoding;
+            this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            this.renderer.toneMappingExposure = 0.5;
+        }
+
+        async loadModel(blockName) {
+            if (modelCache[blockName] !== undefined) {
+                return modelCache[blockName];
+            }
+            try {
+                const response = await fetch(`media/models/${blockName}.json${CACHE_BUST}`);
+                if (!response.ok) {
+                    modelCache[blockName] = null;
+                    return null;
+                }
+                const model = await response.json();
+                modelCache[blockName] = model;
+                return model;
+            } catch (error) {
+                modelCache[blockName] = null;
+                return null;
+            }
+        }
+
+        async resolveModelWithParent(blockName) {
+            const model = await this.loadModel(blockName);
+            if (!model) return null;
+
+            const mergedModel = {
+                textures: { ...model.textures },
+                elements: [...(model.elements || [])]
+            };
+
+            let currentModel = model;
+            let depth = 0;
+            const maxDepth = 5;
+
+            while (currentModel.parent && depth < maxDepth) {
+                try {
+                    const parentPath = currentModel.parent;
+                    const parentName = parentPath.split('/').pop();
+                    const parentModel = await this.loadModel(parentName);
+                    if (!parentModel) break;
+                    if (parentModel.elements) {
+                        mergedModel.elements.push(...parentModel.elements);
+                    }
+                    if (parentModel.textures) {
+                        mergedModel.textures = { ...parentModel.textures, ...mergedModel.textures };
+                    }
+                    currentModel = parentModel;
+                    depth++;
+                } catch (e) {
+                    break;
+                }
+            }
+            return mergedModel;
+        }
+
+        async loadTexture(texturePath, texturesObject = {}) {
+            const resolvedPath = resolveTexturePath(texturePath, texturesObject);
+            if (textureCache[resolvedPath]) {
+                return textureCache[resolvedPath];
+            }
+            try {
+                const texture = await this.textureLoader.loadAsync(resolvedPath);
+                texture.magFilter = THREE.NearestFilter;
+                texture.minFilter = THREE.NearestFilter;
+                textureCache[resolvedPath] = texture;
+                return texture;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async buildMesh(model, blockName) {
+            if (!model || !model.elements || model.elements.length === 0) return null;
+
+            const group = new THREE.Group();
+            const texturePaths = model.textures || {};
+            const faceMap = { 'east': 0, 'west': 1, 'up': 2, 'down': 3, 'south': 4, 'north': 5 };
+            const textureOverrides = PISTON_TEXTURE_OVERRIDES[blockName] || {};
+            const isGlassBlock = blockName.includes('glass');
+            const needsTint = TINTED_BLOCKS.has(blockName);
+            // Grass green tint color (similar to Minecraft's grass color)
+            const grassTintColor = 0x7CBD6B;
+
+            try {
+                for (const element of model.elements) {
+                    try {
+                        if (!element.from || !element.to) continue;
+                        const [minX, minY, minZ] = element.from.map(v => v / 16);
+                        const [maxX, maxY, maxZ] = element.to.map(v => v / 16);
+                        if (minX === maxX || minY === maxY || minZ === maxZ) continue;
+
+                        const geometry = new THREE.BoxGeometry(maxX - minX, maxY - minY, maxZ - minZ);
+                        const centerX = (minX + maxX) / 2 - 0.5;
+                        const centerY = (minY + maxY) / 2 - 0.5;
+                        const centerZ = (minZ + maxZ) / 2 - 0.5;
+
+                        const materials = [];
+                        for (let i = 0; i < 6; i++) {
+                            const mat = new THREE.MeshStandardMaterial({ 
+                                color: 0xffffff,
+                                metalness: 0.1,
+                                roughness: 1,
+                                emissive: 0x202020,
+                                emissiveIntensity: 0,
+                                side: THREE.DoubleSide
+                            });
+
+                            if (isGlassBlock) {
+                                mat.transparent = true;
+                                mat.opacity = 0.35;
+                                mat.depthWrite = false;
+                                mat.emissive.set(0x000000);
+                                mat.emissiveIntensity = 0.0;
+                                mat.roughness = 0.05;
+                                mat.metalness = 0.0;
+                            }
+
+                            materials.push(mat);
+                        }
+
+                        if (element.faces) {
+                            for (const [faceName, faceData] of Object.entries(element.faces)) {
+                                const faceIndex = faceMap[faceName];
+                                if (faceIndex !== undefined && faceData) {
+                                    let texturePath = faceData.texture;
+
+                                    if (textureOverrides[faceName]) {
+                                        texturePath = textureOverrides[faceName];
+                                    } else if (texturePath) {
+                                        if (texturePath.startsWith('#')) {
+                                            const varName = texturePath.substring(1);
+                                            texturePath = texturePaths[varName] || texturePath;
+                                        }
+                                    }
+
+                                    try {
+                                        const texture = await this.loadTexture(texturePath, texturePaths);
+                                        if (texture) {
+                                            materials[faceIndex].map = texture;
+                                            // Apply grass tint if this face has tintindex
+                                            if (needsTint && faceData.tintindex !== undefined) {
+                                                materials[faceIndex].color.setHex(grassTintColor);
+                                            }
+                                            materials[faceIndex].needsUpdate = true;
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+
+                        const mesh = new THREE.Mesh(geometry, materials);
+
+                        // Rotate so the "south" face is the visible front
+                        mesh.rotation.y = Math.PI;
+
+                        mesh.position.set(centerX, centerY, centerZ);
+                        group.add(mesh);
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                return group.children.length > 0 ? group : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async render3DBlock(blockName, outputCanvas, size = 64, bgColor = 0xebe3cf) {
+            try {
+                let modelName = blockName;
+
+                // Check for trapdoor
+                if (blockName.includes('trapdoor')) {
+                    modelName = getTrapdoorModel(blockName);
+                }
+
+                const model = await this.resolveModelWithParent(modelName);
+                if (!model) return false;
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(bgColor);
+
+                // Strong key light from top-left-front
+                const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                keyLight.position.set(-3, 5, 4);
+                scene.add(keyLight);
+
+                // Fill light from bottom-right-back
+                const fillLight = new THREE.DirectionalLight(0xffffff, 0.2);
+                fillLight.position.set(3, -2, -3);
+                scene.add(fillLight);
+
+                // Soft ambient light
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+                scene.add(ambientLight);
+
+                const mesh = await this.buildMesh(model, blockName);
+                if (!mesh) return false;
+
+                const box = new THREE.Box3().setFromObject(mesh);
+                const size_bbox = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size_bbox.x, size_bbox.y, size_bbox.z) || 1;
+                const scale = 1.4 / maxDim;
+                mesh.scale.multiplyScalar(scale);
+                scene.add(mesh);
+
+                const center = box.getCenter(new THREE.Vector3());
+                mesh.position.sub(center.multiplyScalar(scale));
+
+                // Orthographic camera
+                const aspect = 1;
+                const viewSize = 1.2;
+                const camera = new THREE.OrthographicCamera(
+                    -viewSize * aspect,
+                     viewSize * aspect,
+                     viewSize,
+                    -viewSize,
+                    0.1,
+                    100
+                );
+
+                camera.position.set(2.3, 3.4, 3.2);
+                camera.lookAt(0, 0, 0);
+
+                this.renderer.setSize(size, size);
+                this.renderer.render(scene, camera);
+
+                const ctx = outputCanvas.getContext('2d');
+                ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                ctx.drawImage(this.canvas, 0, 0);
+
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async renderBlockTexture(itemName, outputCanvas, size = 64, bgColor = 0xebe3cf) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    try {
+                        const ctx = outputCanvas.getContext('2d');
+                        ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                        // Fill background color
+                        ctx.fillStyle = '#' + bgColor.toString(16).padStart(6, '0');
+                        ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, outputCanvas.width, outputCanvas.height);
+                        resolve(true);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                };
+                img.onerror = () => resolve(false);
+                img.src = `media/textures/block/${itemName}.png${CACHE_BUST}`;
+            });
+        }
+
+        async renderItemTexture(itemName, outputCanvas, size = 64, bgColor = 0xebe3cf) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => {
+                    try {
+                        const ctx = outputCanvas.getContext('2d');
+                        ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                        // Fill background color
+                        ctx.fillStyle = '#' + bgColor.toString(16).padStart(6, '0');
+                        ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.drawImage(img, 0, 0, outputCanvas.width, outputCanvas.height);
+                        resolve(true);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                };
+                img.onerror = () => resolve(false);
+                img.src = `media/textures/item/${itemName}.png${CACHE_BUST}`;
+            });
+        }
+
+        async render(blockName, outputCanvas, size = 64, bgColor = 0xebe3cf) {
+            const cacheKey = `${blockName}_${size}_${bgColor.toString(16)}`;
+            if (renderCache[cacheKey]) {
+                const cachedCanvas = renderCache[cacheKey];
+                const ctx = outputCanvas.getContext('2d');
+                ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+                ctx.drawImage(cachedCanvas, 0, 0);
+                return;
+            }
+
+            if (BLOCK_TEXTURE_ONLY.has(blockName)) {
+                await this.renderBlockTexture(blockName, outputCanvas, size, bgColor);
+            } else if (ITEM_TEXTURE_ONLY.has(blockName)) {
+                await this.renderItemTexture(blockName, outputCanvas, size, bgColor);
+            } else {
+                let success = false;
+                try {
+                    success = await this.render3DBlock(blockName, outputCanvas, size, bgColor);
+                } catch (e) {
+                    success = false;
+                }
+                
+                if (!success) {
+                    try {
+                        await this.renderItemTexture(blockName, outputCanvas, size, bgColor);
+                    } catch (e) {}
+                }
+            }
+
+            try {
+                const cacheCanvas = document.createElement('canvas');
+                cacheCanvas.width = size;
+                cacheCanvas.height = size;
+                const cacheCtx = cacheCanvas.getContext('2d');
+                cacheCtx.drawImage(outputCanvas, 0, 0);
+                renderCache[cacheKey] = cacheCanvas;
+            } catch (e) {}
+        }
+    }
+
+    const renderer = new HybridRenderer();
+
+    // CATEGORIES and RECIPES are identical to your previous version
+    // (kept here unchanged)
+    const CATEGORIES = {
+        'Building Blocks': ['oak_log', 'spruce_log', 'birch_log', 'jungle_log', 'acacia_log', 'dark_oak_log', 'mangrove_log', 'cherry_log', 'oak_wood', 'spruce_wood', 'birch_wood', 'jungle_wood', 'acacia_wood', 'dark_oak_wood', 'mangrove_wood', 'cherry_wood', 'oak_planks', 'spruce_planks', 'birch_planks', 'jungle_planks', 'acacia_planks', 'dark_oak_planks', 'mangrove_planks', 'cherry_planks', 'warped_planks', 'crimson_planks', 'bamboo_planks', 'stone', 'granite', 'diorite', 'andesite', 'polished_granite', 'polished_diorite', 'polished_andesite', 'deepslate', 'cobbled_deepslate', 'polished_deepslate', 'nether_brick', 'brick', 'prismarine', 'prismarine_bricks', 'dark_prismarine', 'sandstone', 'chiseled_sandstone', 'cut_sandstone', 'smooth_sandstone', 'red_sandstone', 'chiseled_red_sandstone', 'cut_red_sandstone', 'smooth_red_sandstone', 'quartz_block', 'chiseled_quartz_block', 'quartz_pillar', 'smooth_quartz', 'mud_bricks', 'obsidian', 'crying_obsidian', 'purpur_block', 'purpur_pillar', 'tuff', 'polished_tuff', 'chiseled_tuff', 'tuff_bricks', 'chiseled_tuff_bricks', 'copper_block', 'exposed_copper', 'weathered_copper', 'oxidized_copper', 'cut_copper', 'exposed_cut_copper', 'weathered_cut_copper', 'oxidized_cut_copper', 'chiseled_copper', 'exposed_chiseled_copper', 'weathered_chiseled_copper', 'oxidized_chiseled_copper', 'amethyst_block', 'iron_block', 'gold_block', 'diamond_block', 'emerald_block', 'lapis_block', 'coal_block', 'raw_copper_block', 'raw_iron_block', 'raw_gold_block', 'netherite_block'],
+        'Colored Blocks': ['white_wool', 'light_gray_wool', 'gray_wool', 'black_wool', 'brown_wool', 'red_wool', 'orange_wool', 'yellow_wool', 'lime_wool', 'green_wool', 'cyan_wool', 'light_blue_wool', 'blue_wool', 'purple_wool', 'magenta_wool', 'pink_wool', 'white_concrete', 'light_gray_concrete', 'gray_concrete', 'black_concrete', 'brown_concrete', 'red_concrete', 'orange_concrete', 'yellow_concrete', 'lime_concrete', 'green_concrete', 'cyan_concrete', 'light_blue_concrete', 'blue_concrete', 'purple_concrete', 'magenta_concrete', 'pink_concrete', 'white_concrete_powder', 'light_gray_concrete_powder', 'gray_concrete_powder', 'black_concrete_powder', 'brown_concrete_powder', 'red_concrete_powder', 'orange_concrete_powder', 'yellow_concrete_powder', 'lime_concrete_powder', 'green_concrete_powder', 'cyan_concrete_powder', 'light_blue_concrete_powder', 'blue_concrete_powder', 'purple_concrete_powder', 'magenta_concrete_powder', 'pink_concrete_powder', 'white_terracotta', 'light_gray_terracotta', 'gray_terracotta', 'black_terracotta', 'brown_terracotta', 'red_terracotta', 'orange_terracotta', 'yellow_terracotta', 'lime_terracotta', 'green_terracotta', 'cyan_terracotta', 'light_blue_terracotta', 'blue_terracotta', 'purple_terracotta', 'magenta_terracotta', 'pink_terracotta', 'glass', 'white_stained_glass', 'light_gray_stained_glass', 'gray_stained_glass', 'black_stained_glass', 'brown_stained_glass', 'red_stained_glass', 'orange_stained_glass', 'yellow_stained_glass', 'lime_stained_glass', 'green_stained_glass', 'cyan_stained_glass', 'light_blue_stained_glass', 'blue_stained_glass', 'purple_stained_glass', 'magenta_stained_glass', 'pink_stained_glass', 'white_candle', 'light_gray_candle', 'gray_candle', 'black_candle', 'brown_candle', 'red_candle', 'orange_candle', 'yellow_candle', 'lime_candle', 'green_candle', 'cyan_candle', 'light_blue_candle', 'blue_candle', 'purple_candle', 'magenta_candle', 'pink_candle'],
+        'Natural Blocks': ['dirt', 'grass_block', 'coarse_dirt', 'rooted_dirt', 'podzol', 'mycelium', 'sand', 'red_sand', 'cobblestone', 'gravel', 'coal_ore', 'deepslate_coal_ore', 'iron_ore', 'deepslate_iron_ore', 'copper_ore', 'deepslate_copper_ore', 'gold_ore', 'deepslate_gold_ore', 'diamond_ore', 'deepslate_diamond_ore', 'emerald_ore', 'deepslate_emerald_ore', 'lapis_ore', 'deepslate_lapis_ore', 'redstone_ore', 'deepslate_redstone_ore', 'nether_quartz_ore', 'nether_gold_ore', 'ancient_debris', 'oak_sapling', 'spruce_sapling', 'birch_sapling', 'jungle_sapling', 'acacia_sapling', 'dark_oak_sapling', 'mangrove_propagule', 'cherry_sapling', 'seagrass', 'poppy', 'blue_orchid', 'allium', 'azure_bluet', 'red_tulip', 'orange_tulip', 'white_tulip', 'pink_tulip', 'oxeye_daisy', 'cornflower', 'lily_of_the_valley', 'wither_rose', 'dandelion', 'torchflower', 'ice', 'blue_ice', 'packed_ice', 'powder_snow', 'kelp', 'brown_mushroom', 'red_mushroom', 'warped_fungus', 'crimson_fungus', 'warped_stem', 'crimson_stem', 'nether_sprouts', 'soul_sand', 'soul_soil', 'magma_block', 'nether_wart_block', 'warped_wart_block', 'pumpkin', 'melon', 'nether_wart', 'honeycomb', 'sugar_cane'],
+        'Functional Blocks': ['oak_door', 'spruce_door', 'birch_door', 'jungle_door', 'acacia_door', 'dark_oak_door', 'mangrove_door', 'cherry_door', 'iron_door', 'warped_door', 'crimson_door', 'oak_trapdoor', 'spruce_trapdoor', 'birch_trapdoor', 'jungle_trapdoor', 'acacia_trapdoor', 'dark_oak_trapdoor', 'mangrove_trapdoor', 'cherry_trapdoor', 'iron_trapdoor', 'warped_trapdoor', 'crimson_trapdoor', 'oak_fence_gate', 'spruce_fence_gate', 'birch_fence_gate', 'jungle_fence_gate', 'acacia_fence_gate', 'dark_oak_fence_gate', 'mangrove_fence_gate', 'cherry_fence_gate', 'warped_fence_gate', 'crimson_fence_gate', 'furnace', 'blast_furnace', 'smoker', 'brewing_stand', 'cauldron', 'composter', 'chest', 'trapped_chest', 'barrel', 'hopper', 'dispenser', 'dropper', 'crafter', 'bell', 'campfire', 'soul_campfire', 'lantern', 'soul_lantern', 'lectern', 'beehive', 'end_crystal', 'dragon_egg', 'beacon', 'enchanting_table', 'flower_pot', 'torch', 'soul_torch', 'tripwire_hook'],
+        'Redstone Blocks': ['redstone_block', 'redstone_ore', 'deepslate_redstone_ore', 'redstone_lamp', 'redstone_torch', 'lever', 'oak_button', 'spruce_button', 'birch_button', 'jungle_button', 'acacia_button', 'dark_oak_button', 'mangrove_button', 'cherry_button', 'warped_button', 'crimson_button', 'polished_blackstone_button', 'stone_button', 'oak_pressure_plate', 'spruce_pressure_plate', 'birch_pressure_plate', 'jungle_pressure_plate', 'acacia_pressure_plate', 'dark_oak_pressure_plate', 'mangrove_pressure_plate', 'cherry_pressure_plate', 'stone_pressure_plate', 'polished_blackstone_pressure_plate', 'light_weighted_pressure_plate', 'heavy_weighted_pressure_plate', 'piston', 'sticky_piston', 'repeater', 'comparator', 'observer', 'note_block', 'jukebox', 'rail', 'powered_rail', 'detector_rail', 'activator_rail', 'minecart'],
+        'Tools & Utilities': ['wooden_pickaxe', 'stone_pickaxe', 'iron_pickaxe', 'golden_pickaxe', 'diamond_pickaxe', 'netherite_pickaxe', 'wooden_axe', 'stone_axe', 'iron_axe', 'golden_axe', 'diamond_axe', 'netherite_axe', 'wooden_shovel', 'stone_shovel', 'iron_shovel', 'golden_shovel', 'diamond_shovel', 'netherite_shovel', 'wooden_hoe', 'stone_hoe', 'iron_hoe', 'golden_hoe', 'diamond_hoe', 'netherite_hoe', 'shears', 'fishing_rod', 'brush', 'flint_and_steel', 'bucket', 'water_bucket', 'lava_bucket', 'milk_bucket', 'powder_snow_bucket', 'fire_charge', 'firework_rocket', 'firework_star', 'nether_star', 'armor_stand', 'item_frame', 'glow_item_frame', 'painting', 'lead', 'name_tag', 'saddle', 'carrot_on_a_stick', 'iron_ingot', 'gold_ingot', 'diamond', 'emerald', 'raw_copper', 'raw_iron', 'raw_gold', 'redstone', 'coal', 'charcoal', 'bone_meal', 'lapis_lazuli', 'ender_pearl', 'ender_eye', 'rotten_flesh', 'gunpowder', 'string', 'slime_ball', 'phantom_membrane', 'blaze_powder', 'blaze_rod', 'chorus_fruit', 'chorus_flower', 'magma_cream', 'prismarine_shard', 'prismarine_crystals', 'nautilus_shell', 'heart_of_the_sea', 'netherite_ingot', 'netherite_scrap', 'copper_ingot', 'clay_ball', 'brick', 'nether_brick', 'amethyst_shard', 'echo_shard'],
+        'Combat': ['wooden_sword', 'stone_sword', 'iron_sword', 'golden_sword', 'diamond_sword', 'netherite_sword', 'trident', 'mace', 'shield', 'leather_helmet', 'leather_chestplate', 'leather_leggings', 'leather_boots', 'chainmail_helmet', 'chainmail_chestplate', 'chainmail_leggings', 'chainmail_boots', 'iron_helmet', 'iron_chestplate', 'iron_leggings', 'iron_boots', 'diamond_helmet', 'diamond_chestplate', 'diamond_leggings', 'diamond_boots', 'golden_helmet', 'golden_chestplate', 'golden_leggings', 'golden_boots', 'netherite_helmet', 'netherite_chestplate', 'netherite_leggings', 'netherite_boots', 'turtle_helmet', 'elytra', 'wolf_armor', 'arrow', 'spectral_arrow', 'crossbow', 'bow'],
+        'Food & Drinks': ['apple', 'golden_apple', 'wheat', 'bread', 'carrot', 'potato', 'baked_potato', 'poisonous_potato', 'beetroot', 'beetroot_soup', 'mushroom_stew', 'rabbit_stew', 'suspicious_stew', 'pumpkin_pie', 'cake', 'cookie', 'melon_slice', 'sweet_berries', 'glow_berries', 'pumpkin', 'melon', 'honey_bottle', 'pufferfish', 'tropical_fish', 'salmon', 'cod', 'chicken', 'cooked_chicken', 'porkchop', 'cooked_porkchop', 'beef', 'cooked_beef', 'mutton', 'cooked_mutton', 'rabbit', 'cooked_rabbit', 'milk_bucket', 'egg', 'cocoa_beans', 'sugar', 'kelp', 'dried_kelp', 'nether_wart', 'glow_berries', 'spyglass'],
+        'Crafting': ['paper', 'book', 'leather', 'saddle', 'flint', 'stick', 'clay_ball', 'brick', 'nether_brick', 'amethyst_shard', 'echo_shard', 'copper_ingot', 'iron_ingot', 'gold_ingot', 'diamond', 'emerald', 'lapis_lazuli', 'quartz', 'netherite_ingot', 'netherite_scrap', 'raw_copper', 'raw_iron', 'raw_gold', 'coal', 'charcoal', 'bone', 'bone_meal', 'string', 'feather', 'gunpowder', 'rotten_flesh', 'spider_eye', 'fermented_spider_eye', 'blaze_powder', 'magma_cream', 'ghast_tear', 'slime_ball', 'phantom_membrane', 'prismarine_shard', 'prismarine_crystals', 'nautilus_shell', 'heart_of_the_sea'],
+        'Ingredients': ['potion', 'splash_potion', 'lingering_potion', 'glow_ink_sac', 'ink_sac', 'cocoa_beans', 'lapis_lazuli', 'bone_meal', 'charcoal', 'black_dye', 'red_dye', 'green_dye', 'brown_dye', 'blue_dye', 'purple_dye', 'cyan_dye', 'light_gray_dye', 'gray_dye', 'pink_dye', 'lime_dye', 'yellow_dye', 'light_blue_dye', 'magenta_dye', 'orange_dye', 'white_dye', 'disc_fragment_5', 'dragon_breath'],
+    };
+
+    // RECIPES structure: 
+    // Shaped recipes: { pattern: [...], shapeless: false } - position matters
+    // Shapeless recipes: { ingredients: [...], shapeless: true } - only items matter, not position
+    const RECIPES = {
+        // === BASIC CRAFTING ===
+        'crafting_table': { pattern: ['oak_planks', 'oak_planks', '', 'oak_planks', 'oak_planks', '', '', '', ''], shapeless: false },
+        'furnace': { pattern: ['cobblestone', 'cobblestone', 'cobblestone', 'cobblestone', '', 'cobblestone', 'cobblestone', 'cobblestone', 'cobblestone'], shapeless: false },
+        'chest': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', '', 'oak_planks', 'oak_planks', 'oak_planks', 'oak_planks'], shapeless: false },
+        'barrel': { pattern: ['oak_planks', 'oak_slab', 'oak_planks', 'oak_planks', '', 'oak_planks', 'oak_planks', 'oak_slab', 'oak_planks'], shapeless: false },
+        'composter': { pattern: ['oak_slab', '', 'oak_slab', 'oak_slab', '', 'oak_slab', 'oak_slab', 'oak_slab', 'oak_slab'], shapeless: false },
+        'note_block': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', 'redstone', 'oak_planks', 'oak_planks', 'oak_planks', 'oak_planks'], shapeless: false },
+        'jukebox': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', 'diamond', 'oak_planks', 'oak_planks', 'oak_planks', 'oak_planks'], shapeless: false },
+        
+        // === PLANKS (all shapeless, single log) ===
+        'oak_planks': { pattern: ['oak_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'spruce_planks': { pattern: ['spruce_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'birch_planks': { pattern: ['birch_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'jungle_planks': { pattern: ['jungle_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'acacia_planks': { pattern: ['acacia_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'dark_oak_planks': { pattern: ['dark_oak_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'mangrove_planks': { pattern: ['mangrove_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'cherry_planks': { pattern: ['cherry_log', '', '', '', '', '', '', '', ''], shapeless: true },
+        'crimson_planks': { pattern: ['crimson_stem', '', '', '', '', '', '', '', ''], shapeless: true },
+        'warped_planks': { pattern: ['warped_stem', '', '', '', '', '', '', '', ''], shapeless: true },
+        
+        // === STICKS ===
+        'stick': { pattern: ['', 'oak_planks', '', '', 'oak_planks', '', '', '', ''], shapeless: false },
+        
+        // === TOOLS - PICKAXES ===
+        'wooden_pickaxe': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'stone_pickaxe': { pattern: ['cobblestone', 'cobblestone', 'cobblestone', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'iron_pickaxe': { pattern: ['iron_ingot', 'iron_ingot', 'iron_ingot', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'golden_pickaxe': { pattern: ['gold_ingot', 'gold_ingot', 'gold_ingot', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'diamond_pickaxe': { pattern: ['diamond', 'diamond', 'diamond', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        
+        // === TOOLS - AXES ===
+        'wooden_axe': { pattern: ['oak_planks', 'oak_planks', '', 'oak_planks', 'stick', '', '', 'stick', ''], shapeless: false },
+        'stone_axe': { pattern: ['cobblestone', 'cobblestone', '', 'cobblestone', 'stick', '', '', 'stick', ''], shapeless: false },
+        'iron_axe': { pattern: ['iron_ingot', 'iron_ingot', '', 'iron_ingot', 'stick', '', '', 'stick', ''], shapeless: false },
+        'golden_axe': { pattern: ['gold_ingot', 'gold_ingot', '', 'gold_ingot', 'stick', '', '', 'stick', ''], shapeless: false },
+        'diamond_axe': { pattern: ['diamond', 'diamond', '', 'diamond', 'stick', '', '', 'stick', ''], shapeless: false },
+        
+        // === TOOLS - SHOVELS ===
+        'wooden_shovel': { pattern: ['', 'oak_planks', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'stone_shovel': { pattern: ['', 'cobblestone', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'iron_shovel': { pattern: ['', 'iron_ingot', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'golden_shovel': { pattern: ['', 'gold_ingot', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'diamond_shovel': { pattern: ['', 'diamond', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        
+        // === TOOLS - HOES ===
+        'wooden_hoe': { pattern: ['oak_planks', 'oak_planks', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'stone_hoe': { pattern: ['cobblestone', 'cobblestone', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'iron_hoe': { pattern: ['iron_ingot', 'iron_ingot', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'golden_hoe': { pattern: ['gold_ingot', 'gold_ingot', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        'diamond_hoe': { pattern: ['diamond', 'diamond', '', '', 'stick', '', '', 'stick', ''], shapeless: false },
+        
+        // === WEAPONS - SWORDS ===
+        'wooden_sword': { pattern: ['', 'oak_planks', '', '', 'oak_planks', '', '', 'stick', ''], shapeless: false },
+        'stone_sword': { pattern: ['', 'cobblestone', '', '', 'cobblestone', '', '', 'stick', ''], shapeless: false },
+        'iron_sword': { pattern: ['', 'iron_ingot', '', '', 'iron_ingot', '', '', 'stick', ''], shapeless: false },
+        'golden_sword': { pattern: ['', 'gold_ingot', '', '', 'gold_ingot', '', '', 'stick', ''], shapeless: false },
+        'diamond_sword': { pattern: ['', 'diamond', '', '', 'diamond', '', '', 'stick', ''], shapeless: false },
+        
+        // === ARMOR - HELMETS ===
+        'leather_helmet': { pattern: ['leather', 'leather', 'leather', 'leather', '', 'leather', '', '', ''], shapeless: false },
+        'iron_helmet': { pattern: ['iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', '', 'iron_ingot', '', '', ''], shapeless: false },
+        'golden_helmet': { pattern: ['gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', '', 'gold_ingot', '', '', ''], shapeless: false },
+        'diamond_helmet': { pattern: ['diamond', 'diamond', 'diamond', 'diamond', '', 'diamond', '', '', ''], shapeless: false },
+        
+        // === ARMOR - CHESTPLATES ===
+        'leather_chestplate': { pattern: ['leather', '', 'leather', 'leather', 'leather', 'leather', 'leather', 'leather', 'leather'], shapeless: false },
+        'iron_chestplate': { pattern: ['iron_ingot', '', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot'], shapeless: false },
+        'golden_chestplate': { pattern: ['gold_ingot', '', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot'], shapeless: false },
+        'diamond_chestplate': { pattern: ['diamond', '', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond'], shapeless: false },
+        
+        // === ARMOR - LEGGINGS ===
+        'leather_leggings': { pattern: ['leather', 'leather', 'leather', 'leather', '', 'leather', 'leather', '', 'leather'], shapeless: false },
+        'iron_leggings': { pattern: ['iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', '', 'iron_ingot'], shapeless: false },
+        'golden_leggings': { pattern: ['gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', '', 'gold_ingot', 'gold_ingot', '', 'gold_ingot'], shapeless: false },
+        'diamond_leggings': { pattern: ['diamond', 'diamond', 'diamond', 'diamond', '', 'diamond', 'diamond', '', 'diamond'], shapeless: false },
+        
+        // === ARMOR - BOOTS ===
+        'leather_boots': { pattern: ['', '', '', 'leather', '', 'leather', 'leather', '', 'leather'], shapeless: false },
+        'iron_boots': { pattern: ['', '', '', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', '', 'iron_ingot'], shapeless: false },
+        'golden_boots': { pattern: ['', '', '', 'gold_ingot', '', 'gold_ingot', 'gold_ingot', '', 'gold_ingot'], shapeless: false },
+        'diamond_boots': { pattern: ['', '', '', 'diamond', '', 'diamond', 'diamond', '', 'diamond'], shapeless: false },
+        
+        // === STORAGE BLOCKS ===
+        'iron_block': { pattern: ['iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot'], shapeless: false },
+        'gold_block': { pattern: ['gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot'], shapeless: false },
+        'diamond_block': { pattern: ['diamond', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond', 'diamond'], shapeless: false },
+        'emerald_block': { pattern: ['emerald', 'emerald', 'emerald', 'emerald', 'emerald', 'emerald', 'emerald', 'emerald', 'emerald'], shapeless: false },
+        'lapis_block': { pattern: ['lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli', 'lapis_lazuli'], shapeless: false },
+        'redstone_block': { pattern: ['redstone', 'redstone', 'redstone', 'redstone', 'redstone', 'redstone', 'redstone', 'redstone', 'redstone'], shapeless: false },
+        'coal_block': { pattern: ['coal', 'coal', 'coal', 'coal', 'coal', 'coal', 'coal', 'coal', 'coal'], shapeless: false },
+        'raw_iron_block': { pattern: ['raw_iron', 'raw_iron', 'raw_iron', 'raw_iron', 'raw_iron', 'raw_iron', 'raw_iron', 'raw_iron', 'raw_iron'], shapeless: false },
+        'raw_gold_block': { pattern: ['raw_gold', 'raw_gold', 'raw_gold', 'raw_gold', 'raw_gold', 'raw_gold', 'raw_gold', 'raw_gold', 'raw_gold'], shapeless: false },
+        'raw_copper_block': { pattern: ['raw_copper', 'raw_copper', 'raw_copper', 'raw_copper', 'raw_copper', 'raw_copper', 'raw_copper', 'raw_copper', 'raw_copper'], shapeless: false },
+        'copper_block': { pattern: ['copper_ingot', 'copper_ingot', 'copper_ingot', 'copper_ingot', 'copper_ingot', 'copper_ingot', 'copper_ingot', 'copper_ingot', 'copper_ingot'], shapeless: false },
+        'netherite_block': { pattern: ['netherite_ingot', 'netherite_ingot', 'netherite_ingot', 'netherite_ingot', 'netherite_ingot', 'netherite_ingot', 'netherite_ingot', 'netherite_ingot', 'netherite_ingot'], shapeless: false },
+        'quartz_block': { pattern: ['quartz', 'quartz', '', 'quartz', 'quartz', '', '', '', ''], shapeless: false },
+        'amethyst_block': { pattern: ['amethyst_shard', 'amethyst_shard', '', 'amethyst_shard', 'amethyst_shard', '', '', '', ''], shapeless: false },
+        'nether_wart_block': { pattern: ['nether_wart', 'nether_wart', 'nether_wart', 'nether_wart', 'nether_wart', 'nether_wart', 'nether_wart', 'nether_wart', 'nether_wart'], shapeless: false },
+        'bone_block': { pattern: ['bone_meal', 'bone_meal', 'bone_meal', 'bone_meal', 'bone_meal', 'bone_meal', 'bone_meal', 'bone_meal', 'bone_meal'], shapeless: false },
+        'slime_block': { pattern: ['slime_ball', 'slime_ball', 'slime_ball', 'slime_ball', 'slime_ball', 'slime_ball', 'slime_ball', 'slime_ball', 'slime_ball'], shapeless: false },
+        
+        // === BUILDING BLOCKS ===
+        'brick': { pattern: ['brick', 'brick', '', 'brick', 'brick', '', '', '', ''], shapeless: false },
+        'nether_brick': { pattern: ['nether_brick', 'nether_brick', '', 'nether_brick', 'nether_brick', '', '', '', ''], shapeless: false },
+        'stone_bricks': { pattern: ['stone', 'stone', '', 'stone', 'stone', '', '', '', ''], shapeless: false },
+        'polished_granite': { pattern: ['granite', 'granite', '', 'granite', 'granite', '', '', '', ''], shapeless: false },
+        'polished_diorite': { pattern: ['diorite', 'diorite', '', 'diorite', 'diorite', '', '', '', ''], shapeless: false },
+        'polished_andesite': { pattern: ['andesite', 'andesite', '', 'andesite', 'andesite', '', '', '', ''], shapeless: false },
+        'polished_deepslate': { pattern: ['cobbled_deepslate', 'cobbled_deepslate', '', 'cobbled_deepslate', 'cobbled_deepslate', '', '', '', ''], shapeless: false },
+        'cut_sandstone': { pattern: ['sandstone', 'sandstone', '', 'sandstone', 'sandstone', '', '', '', ''], shapeless: false },
+        'cut_red_sandstone': { pattern: ['red_sandstone', 'red_sandstone', '', 'red_sandstone', 'red_sandstone', '', '', '', ''], shapeless: false },
+        'prismarine': { pattern: ['prismarine_shard', 'prismarine_shard', '', 'prismarine_shard', 'prismarine_shard', '', '', '', ''], shapeless: false },
+        'prismarine_bricks': { pattern: ['prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard'], shapeless: false },
+        'dark_prismarine': { pattern: ['prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'ink_sac', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard', 'prismarine_shard'], shapeless: false },
+        'sandstone': { pattern: ['sand', 'sand', '', 'sand', 'sand', '', '', '', ''], shapeless: false },
+        'red_sandstone': { pattern: ['red_sand', 'red_sand', '', 'red_sand', 'red_sand', '', '', '', ''], shapeless: false },
+        'chiseled_sandstone': { pattern: ['', 'sandstone_slab', '', '', 'sandstone_slab', '', '', '', ''], shapeless: false },
+        'smooth_stone': { pattern: ['stone', '', '', '', '', '', '', '', ''], shapeless: true },
+        'purpur_block': { pattern: ['popped_chorus_fruit', 'popped_chorus_fruit', '', 'popped_chorus_fruit', 'popped_chorus_fruit', '', '', '', ''], shapeless: false },
+        'purpur_pillar': { pattern: ['', 'purpur_slab', '', '', 'purpur_slab', '', '', '', ''], shapeless: false },
+        'packed_ice': { pattern: ['ice', 'ice', 'ice', 'ice', 'ice', 'ice', 'ice', 'ice', 'ice'], shapeless: false },
+        'blue_ice': { pattern: ['packed_ice', 'packed_ice', 'packed_ice', 'packed_ice', 'packed_ice', 'packed_ice', 'packed_ice', 'packed_ice', 'packed_ice'], shapeless: false },
+        'snow_block': { pattern: ['snowball', 'snowball', '', 'snowball', 'snowball', '', '', '', ''], shapeless: false },
+        'clay': { pattern: ['clay_ball', 'clay_ball', '', 'clay_ball', 'clay_ball', '', '', '', ''], shapeless: false },
+        'quartz_pillar': { pattern: ['', 'quartz_block', '', '', 'quartz_block', '', '', '', ''], shapeless: false },
+        'chiseled_quartz_block': { pattern: ['', 'quartz_slab', '', '', 'quartz_slab', '', '', '', ''], shapeless: false },
+        'polished_tuff': { pattern: ['tuff', 'tuff', '', 'tuff', 'tuff', '', '', '', ''], shapeless: false },
+        'tuff_bricks': { pattern: ['polished_tuff', 'polished_tuff', '', 'polished_tuff', 'polished_tuff', '', '', '', ''], shapeless: false },
+        
+        // === DOORS ===
+        'oak_door': { pattern: ['oak_planks', 'oak_planks', '', 'oak_planks', 'oak_planks', '', 'oak_planks', 'oak_planks', ''], shapeless: false },
+        'spruce_door': { pattern: ['spruce_planks', 'spruce_planks', '', 'spruce_planks', 'spruce_planks', '', 'spruce_planks', 'spruce_planks', ''], shapeless: false },
+        'birch_door': { pattern: ['birch_planks', 'birch_planks', '', 'birch_planks', 'birch_planks', '', 'birch_planks', 'birch_planks', ''], shapeless: false },
+        'jungle_door': { pattern: ['jungle_planks', 'jungle_planks', '', 'jungle_planks', 'jungle_planks', '', 'jungle_planks', 'jungle_planks', ''], shapeless: false },
+        'acacia_door': { pattern: ['acacia_planks', 'acacia_planks', '', 'acacia_planks', 'acacia_planks', '', 'acacia_planks', 'acacia_planks', ''], shapeless: false },
+        'dark_oak_door': { pattern: ['dark_oak_planks', 'dark_oak_planks', '', 'dark_oak_planks', 'dark_oak_planks', '', 'dark_oak_planks', 'dark_oak_planks', ''], shapeless: false },
+        'mangrove_door': { pattern: ['mangrove_planks', 'mangrove_planks', '', 'mangrove_planks', 'mangrove_planks', '', 'mangrove_planks', 'mangrove_planks', ''], shapeless: false },
+        'cherry_door': { pattern: ['cherry_planks', 'cherry_planks', '', 'cherry_planks', 'cherry_planks', '', 'cherry_planks', 'cherry_planks', ''], shapeless: false },
+        'crimson_door': { pattern: ['crimson_planks', 'crimson_planks', '', 'crimson_planks', 'crimson_planks', '', 'crimson_planks', 'crimson_planks', ''], shapeless: false },
+        'warped_door': { pattern: ['warped_planks', 'warped_planks', '', 'warped_planks', 'warped_planks', '', 'warped_planks', 'warped_planks', ''], shapeless: false },
+        'iron_door': { pattern: ['iron_ingot', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', ''], shapeless: false },
+        
+        // === TRAPDOORS ===
+        'oak_trapdoor': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', '', '', ''], shapeless: false },
+        'spruce_trapdoor': { pattern: ['spruce_planks', 'spruce_planks', 'spruce_planks', 'spruce_planks', 'spruce_planks', 'spruce_planks', '', '', ''], shapeless: false },
+        'birch_trapdoor': { pattern: ['birch_planks', 'birch_planks', 'birch_planks', 'birch_planks', 'birch_planks', 'birch_planks', '', '', ''], shapeless: false },
+        'jungle_trapdoor': { pattern: ['jungle_planks', 'jungle_planks', 'jungle_planks', 'jungle_planks', 'jungle_planks', 'jungle_planks', '', '', ''], shapeless: false },
+        'acacia_trapdoor': { pattern: ['acacia_planks', 'acacia_planks', 'acacia_planks', 'acacia_planks', 'acacia_planks', 'acacia_planks', '', '', ''], shapeless: false },
+        'dark_oak_trapdoor': { pattern: ['dark_oak_planks', 'dark_oak_planks', 'dark_oak_planks', 'dark_oak_planks', 'dark_oak_planks', 'dark_oak_planks', '', '', ''], shapeless: false },
+        'iron_trapdoor': { pattern: ['iron_ingot', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', '', '', '', ''], shapeless: false },
+        
+        // === FENCE GATES ===
+        'oak_fence_gate': { pattern: ['', '', '', 'stick', 'oak_planks', 'stick', 'stick', 'oak_planks', 'stick'], shapeless: false },
+        'spruce_fence_gate': { pattern: ['', '', '', 'stick', 'spruce_planks', 'stick', 'stick', 'spruce_planks', 'stick'], shapeless: false },
+        'birch_fence_gate': { pattern: ['', '', '', 'stick', 'birch_planks', 'stick', 'stick', 'birch_planks', 'stick'], shapeless: false },
+        'jungle_fence_gate': { pattern: ['', '', '', 'stick', 'jungle_planks', 'stick', 'stick', 'jungle_planks', 'stick'], shapeless: false },
+        'acacia_fence_gate': { pattern: ['', '', '', 'stick', 'acacia_planks', 'stick', 'stick', 'acacia_planks', 'stick'], shapeless: false },
+        'dark_oak_fence_gate': { pattern: ['', '', '', 'stick', 'dark_oak_planks', 'stick', 'stick', 'dark_oak_planks', 'stick'], shapeless: false },
+        'crimson_fence_gate': { pattern: ['', '', '', 'stick', 'crimson_planks', 'stick', 'stick', 'crimson_planks', 'stick'], shapeless: false },
+        'warped_fence_gate': { pattern: ['', '', '', 'stick', 'warped_planks', 'stick', 'stick', 'warped_planks', 'stick'], shapeless: false },
+        
+        // === BUTTONS ===
+        'oak_button': { pattern: ['oak_planks', '', '', '', '', '', '', '', ''], shapeless: true },
+        'spruce_button': { pattern: ['spruce_planks', '', '', '', '', '', '', '', ''], shapeless: true },
+        'birch_button': { pattern: ['birch_planks', '', '', '', '', '', '', '', ''], shapeless: true },
+        'jungle_button': { pattern: ['jungle_planks', '', '', '', '', '', '', '', ''], shapeless: true },
+        'acacia_button': { pattern: ['acacia_planks', '', '', '', '', '', '', '', ''], shapeless: true },
+        'dark_oak_button': { pattern: ['dark_oak_planks', '', '', '', '', '', '', '', ''], shapeless: true },
+        'stone_button': { pattern: ['stone', '', '', '', '', '', '', '', ''], shapeless: true },
+        
+        // === PRESSURE PLATES ===
+        'oak_pressure_plate': { pattern: ['oak_planks', 'oak_planks', '', '', '', '', '', '', ''], shapeless: false },
+        'spruce_pressure_plate': { pattern: ['spruce_planks', 'spruce_planks', '', '', '', '', '', '', ''], shapeless: false },
+        'birch_pressure_plate': { pattern: ['birch_planks', 'birch_planks', '', '', '', '', '', '', ''], shapeless: false },
+        'jungle_pressure_plate': { pattern: ['jungle_planks', 'jungle_planks', '', '', '', '', '', '', ''], shapeless: false },
+        'acacia_pressure_plate': { pattern: ['acacia_planks', 'acacia_planks', '', '', '', '', '', '', ''], shapeless: false },
+        'dark_oak_pressure_plate': { pattern: ['dark_oak_planks', 'dark_oak_planks', '', '', '', '', '', '', ''], shapeless: false },
+        'stone_pressure_plate': { pattern: ['stone', 'stone', '', '', '', '', '', '', ''], shapeless: false },
+        'light_weighted_pressure_plate': { pattern: ['gold_ingot', 'gold_ingot', '', '', '', '', '', '', ''], shapeless: false },
+        'heavy_weighted_pressure_plate': { pattern: ['iron_ingot', 'iron_ingot', '', '', '', '', '', '', ''], shapeless: false },
+        
+        // === REDSTONE ===
+        'redstone_torch': { pattern: ['', 'redstone', '', '', 'stick', '', '', '', ''], shapeless: false },
+        'redstone_lamp': { pattern: ['', 'redstone', '', 'redstone', 'glowstone', 'redstone', '', 'redstone', ''], shapeless: false },
+        'lever': { pattern: ['', 'stick', '', '', 'cobblestone', '', '', '', ''], shapeless: false },
+        'piston': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'cobblestone', 'iron_ingot', 'cobblestone', 'cobblestone', 'redstone', 'cobblestone'], shapeless: false },
+        'sticky_piston': { pattern: ['slime_ball', '', '', 'piston', '', '', '', '', ''], shapeless: false },
+        'observer': { pattern: ['cobblestone', 'cobblestone', 'cobblestone', 'redstone', 'redstone', 'quartz', 'cobblestone', 'cobblestone', 'cobblestone'], shapeless: false },
+        'dropper': { pattern: ['cobblestone', 'cobblestone', 'cobblestone', 'cobblestone', '', 'cobblestone', 'cobblestone', 'redstone', 'cobblestone'], shapeless: false },
+        'dispenser': { pattern: ['cobblestone', 'cobblestone', 'cobblestone', 'cobblestone', 'bow', 'cobblestone', 'cobblestone', 'redstone', 'cobblestone'], shapeless: false },
+        'hopper': { pattern: ['iron_ingot', '', 'iron_ingot', 'iron_ingot', 'chest', 'iron_ingot', '', 'iron_ingot', ''], shapeless: false },
+        'repeater': { pattern: ['', '', '', 'redstone_torch', 'redstone', 'redstone_torch', 'stone', 'stone', 'stone'], shapeless: false },
+        'comparator': { pattern: ['', 'redstone_torch', '', 'redstone_torch', 'quartz', 'redstone_torch', 'stone', 'stone', 'stone'], shapeless: false },
+        
+        // === RAILS ===
+        'rail': { pattern: ['iron_ingot', '', 'iron_ingot', 'iron_ingot', 'stick', 'iron_ingot', 'iron_ingot', '', 'iron_ingot'], shapeless: false },
+        'powered_rail': { pattern: ['gold_ingot', '', 'gold_ingot', 'gold_ingot', 'stick', 'gold_ingot', 'gold_ingot', 'redstone', 'gold_ingot'], shapeless: false },
+        'detector_rail': { pattern: ['iron_ingot', '', 'iron_ingot', 'iron_ingot', 'stone_pressure_plate', 'iron_ingot', 'iron_ingot', 'redstone', 'iron_ingot'], shapeless: false },
+        'activator_rail': { pattern: ['iron_ingot', 'stick', 'iron_ingot', 'iron_ingot', 'redstone_torch', 'iron_ingot', 'iron_ingot', 'stick', 'iron_ingot'], shapeless: false },
+        'minecart': { pattern: ['', '', '', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot'], shapeless: false },
+        
+        // === MISC TOOLS ===
+        'bucket': { pattern: ['', '', '', 'iron_ingot', '', 'iron_ingot', '', 'iron_ingot', ''], shapeless: false },
+        'shears': { pattern: ['', 'iron_ingot', '', 'iron_ingot', '', '', '', '', ''], shapeless: false },
+        'flint_and_steel': { ingredients: ['iron_ingot', 'flint'], shapeless: true },
+        'compass': { pattern: ['', 'iron_ingot', '', 'iron_ingot', 'redstone', 'iron_ingot', '', 'iron_ingot', ''], shapeless: false },
+        'clock': { pattern: ['', 'gold_ingot', '', 'gold_ingot', 'redstone', 'gold_ingot', '', 'gold_ingot', ''], shapeless: false },
+        'spyglass': { pattern: ['', 'amethyst_shard', '', '', 'copper_ingot', '', '', 'copper_ingot', ''], shapeless: false },
+        'fishing_rod': { pattern: ['', '', 'stick', '', 'stick', 'string', 'stick', '', 'string'], shapeless: false },
+        'lead': { pattern: ['string', 'string', '', 'string', 'slime_ball', '', '', '', 'string'], shapeless: false },
+        'brush': { pattern: ['', 'feather', '', '', 'copper_ingot', '', '', 'stick', ''], shapeless: false },
+        
+        // === COMBAT ===
+        'bow': { pattern: ['', 'stick', 'string', 'stick', '', 'string', '', 'stick', 'string'], shapeless: false },
+        'crossbow': { pattern: ['stick', 'iron_ingot', 'stick', 'string', 'tripwire_hook', 'string', '', 'stick', ''], shapeless: false },
+        'arrow': { pattern: ['', 'flint', '', '', 'stick', '', '', 'feather', ''], shapeless: false },
+        'spectral_arrow': { pattern: ['', 'glowstone_dust', '', 'glowstone_dust', 'arrow', 'glowstone_dust', '', 'glowstone_dust', ''], shapeless: false },
+        'shield': { pattern: ['oak_planks', 'iron_ingot', 'oak_planks', 'oak_planks', 'oak_planks', 'oak_planks', '', 'oak_planks', ''], shapeless: false },
+        
+        // === FOOD ===
+        'bread': { pattern: ['wheat', 'wheat', 'wheat', '', '', '', '', '', ''], shapeless: false },
+        'cookie': { pattern: ['wheat', 'cocoa_beans', 'wheat', '', '', '', '', '', ''], shapeless: false },
+        'cake': { pattern: ['milk_bucket', 'milk_bucket', 'milk_bucket', 'sugar', 'egg', 'sugar', 'wheat', 'wheat', 'wheat'], shapeless: false },
+        'pumpkin_pie': { ingredients: ['pumpkin', 'sugar', 'egg'], shapeless: true },
+        'mushroom_stew': { ingredients: ['brown_mushroom', 'red_mushroom', 'bowl'], shapeless: true },
+        'beetroot_soup': { pattern: ['beetroot', 'beetroot', 'beetroot', 'beetroot', 'beetroot', 'beetroot', '', 'bowl', ''], shapeless: false },
+        'rabbit_stew': { pattern: ['', 'cooked_rabbit', '', 'carrot', 'baked_potato', 'brown_mushroom', '', 'bowl', ''], shapeless: false },
+        'golden_apple': { pattern: ['gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'apple', 'gold_ingot', 'gold_ingot', 'gold_ingot', 'gold_ingot'], shapeless: false },
+        'golden_carrot': { pattern: ['gold_nugget', 'gold_nugget', 'gold_nugget', 'gold_nugget', 'carrot', 'gold_nugget', 'gold_nugget', 'gold_nugget', 'gold_nugget'], shapeless: false },
+        'melon': { pattern: ['melon_slice', 'melon_slice', 'melon_slice', 'melon_slice', 'melon_slice', 'melon_slice', 'melon_slice', 'melon_slice', 'melon_slice'], shapeless: false },
+        'dried_kelp_block': { pattern: ['dried_kelp', 'dried_kelp', 'dried_kelp', 'dried_kelp', 'dried_kelp', 'dried_kelp', 'dried_kelp', 'dried_kelp', 'dried_kelp'], shapeless: false },
+        
+        // === DECORATION ===
+        'painting': { pattern: ['stick', 'stick', 'stick', 'stick', 'white_wool', 'stick', 'stick', 'stick', 'stick'], shapeless: false },
+        'item_frame': { pattern: ['stick', 'stick', 'stick', 'stick', 'leather', 'stick', 'stick', 'stick', 'stick'], shapeless: false },
+        'glow_item_frame': { ingredients: ['item_frame', 'glow_ink_sac'], shapeless: true },
+        'armor_stand': { pattern: ['stick', 'stick', 'stick', '', 'stick', '', 'stick', 'stick', 'stick'], shapeless: false },
+        'flower_pot': { pattern: ['', '', '', 'brick', '', 'brick', '', 'brick', ''], shapeless: false },
+        
+        // === LIGHT SOURCES ===
+        'torch': { pattern: ['', 'coal', '', '', 'stick', '', '', '', ''], shapeless: false },
+        'soul_torch': { pattern: ['', 'coal', '', '', 'stick', '', '', 'soul_sand', ''], shapeless: false },
+        'lantern': { pattern: ['iron_nugget', 'iron_nugget', 'iron_nugget', 'iron_nugget', 'torch', 'iron_nugget', 'iron_nugget', 'iron_nugget', 'iron_nugget'], shapeless: false },
+        'soul_lantern': { pattern: ['iron_nugget', 'iron_nugget', 'iron_nugget', 'iron_nugget', 'soul_torch', 'iron_nugget', 'iron_nugget', 'iron_nugget', 'iron_nugget'], shapeless: false },
+        'campfire': { pattern: ['', 'stick', '', 'stick', 'coal', 'stick', 'oak_log', 'oak_log', 'oak_log'], shapeless: false },
+        'soul_campfire': { pattern: ['', 'stick', '', 'stick', 'soul_sand', 'stick', 'oak_log', 'oak_log', 'oak_log'], shapeless: false },
+        
+        // === FURNACES ===
+        'blast_furnace': { pattern: ['iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'furnace', 'iron_ingot', 'smooth_stone', 'smooth_stone', 'smooth_stone'], shapeless: false },
+        'smoker': { pattern: ['', 'oak_log', '', 'oak_log', 'furnace', 'oak_log', '', 'oak_log', ''], shapeless: false },
+        
+        // === BREWING ===
+        'brewing_stand': { pattern: ['', '', '', '', 'blaze_rod', '', 'cobblestone', 'cobblestone', 'cobblestone'], shapeless: false },
+        'cauldron': { pattern: ['iron_ingot', '', 'iron_ingot', 'iron_ingot', '', 'iron_ingot', 'iron_ingot', 'iron_ingot', 'iron_ingot'], shapeless: false },
+        'fermented_spider_eye': { ingredients: ['spider_eye', 'brown_mushroom', 'sugar'], shapeless: true },
+        'magma_cream': { ingredients: ['blaze_powder', 'slime_ball'], shapeless: true },
+        'blaze_powder': { pattern: ['blaze_rod', '', '', '', '', '', '', '', ''], shapeless: true },
+        'fire_charge': { ingredients: ['blaze_powder', 'coal', 'gunpowder'], shapeless: true },
+        
+        // === ENCHANTING/BOOKS ===
+        'paper': { pattern: ['sugar_cane', 'sugar_cane', 'sugar_cane', '', '', '', '', '', ''], shapeless: false },
+        'book': { ingredients: ['paper', 'paper', 'paper', 'leather'], shapeless: true },
+        'bookshelf': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'book', 'book', 'book', 'oak_planks', 'oak_planks', 'oak_planks'], shapeless: false },
+        'lectern': { pattern: ['oak_slab', 'oak_slab', 'oak_slab', '', 'bookshelf', '', '', 'oak_slab', ''], shapeless: false },
+        'enchanting_table': { pattern: ['', 'book', '', 'diamond', 'obsidian', 'diamond', 'obsidian', 'obsidian', 'obsidian'], shapeless: false },
+        
+        // === WOOL (shapeless dye + white wool) ===
+        'orange_wool': { ingredients: ['white_wool', 'orange_dye'], shapeless: true },
+        'magenta_wool': { ingredients: ['white_wool', 'magenta_dye'], shapeless: true },
+        'light_blue_wool': { ingredients: ['white_wool', 'light_blue_dye'], shapeless: true },
+        'yellow_wool': { ingredients: ['white_wool', 'yellow_dye'], shapeless: true },
+        'lime_wool': { ingredients: ['white_wool', 'lime_dye'], shapeless: true },
+        'pink_wool': { ingredients: ['white_wool', 'pink_dye'], shapeless: true },
+        'gray_wool': { ingredients: ['white_wool', 'gray_dye'], shapeless: true },
+        'light_gray_wool': { ingredients: ['white_wool', 'light_gray_dye'], shapeless: true },
+        'cyan_wool': { ingredients: ['white_wool', 'cyan_dye'], shapeless: true },
+        'purple_wool': { ingredients: ['white_wool', 'purple_dye'], shapeless: true },
+        'blue_wool': { ingredients: ['white_wool', 'blue_dye'], shapeless: true },
+        'brown_wool': { ingredients: ['white_wool', 'brown_dye'], shapeless: true },
+        'green_wool': { ingredients: ['white_wool', 'green_dye'], shapeless: true },
+        'red_wool': { ingredients: ['white_wool', 'red_dye'], shapeless: true },
+        'black_wool': { ingredients: ['white_wool', 'black_dye'], shapeless: true },
+        
+        // === CONCRETE POWDER ===
+        'white_concrete_powder': { ingredients: ['white_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'orange_concrete_powder': { ingredients: ['orange_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'magenta_concrete_powder': { ingredients: ['magenta_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'light_blue_concrete_powder': { ingredients: ['light_blue_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'yellow_concrete_powder': { ingredients: ['yellow_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'lime_concrete_powder': { ingredients: ['lime_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'pink_concrete_powder': { ingredients: ['pink_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'gray_concrete_powder': { ingredients: ['gray_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'light_gray_concrete_powder': { ingredients: ['light_gray_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'cyan_concrete_powder': { ingredients: ['cyan_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'purple_concrete_powder': { ingredients: ['purple_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'blue_concrete_powder': { ingredients: ['blue_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'brown_concrete_powder': { ingredients: ['brown_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'green_concrete_powder': { ingredients: ['green_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'red_concrete_powder': { ingredients: ['red_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        'black_concrete_powder': { ingredients: ['black_dye', 'sand', 'sand', 'sand', 'sand', 'gravel', 'gravel', 'gravel', 'gravel'], shapeless: true },
+        
+        // === STAINED GLASS ===
+        'white_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'white_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'orange_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'orange_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'magenta_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'magenta_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'light_blue_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'light_blue_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'yellow_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'yellow_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'lime_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'lime_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'pink_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'pink_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'gray_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'gray_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'light_gray_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'light_gray_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'cyan_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'cyan_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'purple_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'purple_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'blue_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'blue_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'brown_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'brown_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'green_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'green_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'red_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'red_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        'black_stained_glass': { pattern: ['glass', 'glass', 'glass', 'glass', 'black_dye', 'glass', 'glass', 'glass', 'glass'], shapeless: false },
+        
+        // === DYES (shapeless) ===
+        'red_dye': { pattern: ['poppy', '', '', '', '', '', '', '', ''], shapeless: true },
+        'orange_dye': { ingredients: ['red_dye', 'yellow_dye'], shapeless: true },
+        'yellow_dye': { pattern: ['dandelion', '', '', '', '', '', '', '', ''], shapeless: true },
+        'lime_dye': { ingredients: ['green_dye', 'white_dye'], shapeless: true },
+        'light_blue_dye': { pattern: ['blue_orchid', '', '', '', '', '', '', '', ''], shapeless: true },
+        'cyan_dye': { ingredients: ['blue_dye', 'green_dye'], shapeless: true },
+        'blue_dye': { pattern: ['cornflower', '', '', '', '', '', '', '', ''], shapeless: true },
+        'purple_dye': { ingredients: ['blue_dye', 'red_dye'], shapeless: true },
+        'magenta_dye': { pattern: ['allium', '', '', '', '', '', '', '', ''], shapeless: true },
+        'pink_dye': { pattern: ['pink_tulip', '', '', '', '', '', '', '', ''], shapeless: true },
+        'white_dye': { pattern: ['bone_meal', '', '', '', '', '', '', '', ''], shapeless: true },
+        'light_gray_dye': { pattern: ['azure_bluet', '', '', '', '', '', '', '', ''], shapeless: true },
+        'gray_dye': { ingredients: ['black_dye', 'white_dye'], shapeless: true },
+        'black_dye': { pattern: ['ink_sac', '', '', '', '', '', '', '', ''], shapeless: true },
+        'brown_dye': { pattern: ['cocoa_beans', '', '', '', '', '', '', '', ''], shapeless: true },
+        
+        // === MISC ===
+        'bowl': { pattern: ['oak_planks', '', 'oak_planks', '', 'oak_planks', '', '', '', ''], shapeless: false },
+        'bone_meal': { pattern: ['bone', '', '', '', '', '', '', '', ''], shapeless: true },
+        'sugar': { pattern: ['sugar_cane', '', '', '', '', '', '', '', ''], shapeless: true },
+        'carrot_on_a_stick': { ingredients: ['fishing_rod', 'carrot'], shapeless: true },
+        'ender_eye': { ingredients: ['ender_pearl', 'blaze_powder'], shapeless: true },
+        'end_crystal': { pattern: ['glass', 'glass', 'glass', 'glass', 'ender_eye', 'glass', 'glass', 'ghast_tear', 'glass'], shapeless: false },
+        'beacon': { pattern: ['glass', 'glass', 'glass', 'glass', 'nether_star', 'glass', 'obsidian', 'obsidian', 'obsidian'], shapeless: false },
+        'trapped_chest': { ingredients: ['chest', 'tripwire_hook'], shapeless: true },
+        'tripwire_hook': { pattern: ['', 'iron_ingot', '', '', 'stick', '', '', 'oak_planks', ''], shapeless: false },
+        'beehive': { pattern: ['oak_planks', 'oak_planks', 'oak_planks', 'honeycomb', 'honeycomb', 'honeycomb', 'oak_planks', 'oak_planks', 'oak_planks'], shapeless: false },
+    };
+
+    // Helper function to get the pattern array for any recipe
+    function getRecipePattern(recipe) {
+        if (recipe.pattern) return recipe.pattern;
+        if (recipe.ingredients) {
+            // For shapeless, create a pattern with ingredients in order, padded with empty strings
+            const pattern = Array(9).fill('');
+            recipe.ingredients.forEach((ing, i) => {
+                if (i < 9) pattern[i] = ing;
+            });
+            return pattern;
+        }
+        return Array(9).fill('');
+    }
+
+    // Helper function to check if a guess matches a shapeless recipe
+    function checkShapelessMatch(guess, recipe) {
+        const ingredients = recipe.ingredients || recipe.pattern.filter(x => x !== '');
+        const guessItems = guess.filter(x => x !== '');
+        
+        if (guessItems.length !== ingredients.length) return false;
+        
+        // Count items in both arrays
+        const ingredientCounts = {};
+        const guessCounts = {};
+        
+        for (const item of ingredients) {
+            ingredientCounts[item] = (ingredientCounts[item] || 0) + 1;
+        }
+        for (const item of guessItems) {
+            guessCounts[item] = (guessCounts[item] || 0) + 1;
+        }
+        
+        // Check if counts match
+        for (const item in ingredientCounts) {
+            if (ingredientCounts[item] !== guessCounts[item]) return false;
+        }
+        for (const item in guessCounts) {
+            if (guessCounts[item] !== ingredientCounts[item]) return false;
+        }
+        
+        return true;
+    }
+
+    // Game state
+    let currentRecipe = null;
+    let currentResult = null;
+    let currentGuess = ['', '', '', '', '', '', '', '', ''];
+    let guesses = [];          // array of 9-item arrays
+    let guessResults = [];     // parallel array of 9-status arrays ('correct','present','wrong')
+    let guessOutputs = [];     // parallel array of output item names for each guess
+    let itemStatuses = {};     // item -> best status across guesses
+    let gameMode = 'daily';
+    let draggedItem = null;
+    let dragPreview = null;
+    let mcTooltip = null;
+    let heldItem = null;       // Item being moved within crafting grid
+    let heldItemSourceSlot = null; // Original slot of held item
+
+    // Background colors for different statuses
+    const STATUS_BG_COLORS = {
+        'correct': 0x90EE90,      // Green
+        'present': 0xFFD700,      // Yellow  
+        'wrong': 0x8B8B8B,        // Gray
+        'close': 0x6BB5FF,        // Blue - adjacent to correct
+        'default': 0xC6B9A5       // Default light brown
+    };
+
+    // Wood types for interchangeability
+    const PLANK_TYPES = ['oak_planks', 'spruce_planks', 'birch_planks', 'jungle_planks', 'acacia_planks', 'dark_oak_planks', 'mangrove_planks', 'cherry_planks', 'warped_planks', 'crimson_planks', 'bamboo_planks'];
+    const LOG_TYPES = ['oak_log', 'spruce_log', 'birch_log', 'jungle_log', 'acacia_log', 'dark_oak_log', 'mangrove_log', 'cherry_log', 'warped_stem', 'crimson_stem'];
+    
+    // Recipes where wood type matters (cannot interchange)
+    const WOOD_SPECIFIC_RECIPES = new Set([
+        // Planks from logs
+        'oak_planks', 'spruce_planks', 'birch_planks', 'jungle_planks', 'acacia_planks', 
+        'dark_oak_planks', 'mangrove_planks', 'cherry_planks', 'crimson_planks', 'warped_planks',
+        // Doors
+        'oak_door', 'spruce_door', 'birch_door', 'jungle_door', 'acacia_door', 
+        'dark_oak_door', 'mangrove_door', 'cherry_door', 'crimson_door', 'warped_door', 'iron_door',
+        // Trapdoors
+        'oak_trapdoor', 'spruce_trapdoor', 'birch_trapdoor', 'jungle_trapdoor', 
+        'acacia_trapdoor', 'dark_oak_trapdoor', 'iron_trapdoor',
+        // Fence gates
+        'oak_fence_gate', 'spruce_fence_gate', 'birch_fence_gate', 'jungle_fence_gate',
+        'acacia_fence_gate', 'dark_oak_fence_gate', 'crimson_fence_gate', 'warped_fence_gate',
+        // Buttons
+        'oak_button', 'spruce_button', 'birch_button', 'jungle_button', 
+        'acacia_button', 'dark_oak_button', 'stone_button',
+        // Pressure plates
+        'oak_pressure_plate', 'spruce_pressure_plate', 'birch_pressure_plate', 
+        'jungle_pressure_plate', 'acacia_pressure_plate', 'dark_oak_pressure_plate'
+    ]);
+
+    // Check if two items are equivalent (considering wood interchangeability)
+    function itemsEquivalent(item1, item2, recipeName) {
+        if (item1 === item2) return true;
+        if (!item1 || !item2) return false;
+        
+        // If this is a wood-specific recipe, no interchangeability
+        if (WOOD_SPECIFIC_RECIPES.has(recipeName)) return false;
+        
+        // Check plank interchangeability
+        if (PLANK_TYPES.includes(item1) && PLANK_TYPES.includes(item2)) return true;
+        
+        // Check log interchangeability
+        if (LOG_TYPES.includes(item1) && LOG_TYPES.includes(item2)) return true;
+        
+        return false;
+    }
+
+    // Get adjacent slot indices for a given slot (0-8 in 3x3 grid)
+    function getAdjacentSlots(slotIndex) {
+        const row = Math.floor(slotIndex / 3);
+        const col = slotIndex % 3;
+        const adjacent = [];
+        
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const newRow = row + dr;
+                const newCol = col + dc;
+                if (newRow >= 0 && newRow < 3 && newCol >= 0 && newCol < 3) {
+                    adjacent.push(newRow * 3 + newCol);
+                }
+            }
+        }
+        return adjacent;
+    }
+
+    // Shift a pattern by offset (returns null if pattern goes out of bounds)
+    function shiftPattern(pattern, rowOffset, colOffset) {
+        const shifted = Array(9).fill('');
+        for (let i = 0; i < 9; i++) {
+            if (!pattern[i]) continue;
+            const row = Math.floor(i / 3);
+            const col = i % 3;
+            const newRow = row + rowOffset;
+            const newCol = col + colOffset;
+            if (newRow < 0 || newRow >= 3 || newCol < 0 || newCol >= 3) {
+                return null; // Pattern goes out of bounds
+            }
+            shifted[newRow * 3 + newCol] = pattern[i];
+        }
+        return shifted;
+    }
+
+    // Mirror a pattern horizontally
+    function mirrorPatternHorizontal(pattern) {
+        const mirrored = Array(9).fill('');
+        for (let row = 0; row < 3; row++) {
+            for (let col = 0; col < 3; col++) {
+                mirrored[row * 3 + (2 - col)] = pattern[row * 3 + col];
+            }
+        }
+        return mirrored;
+    }
+
+    // Get all valid variations of a pattern (shifted and mirrored)
+    function getPatternVariations(pattern) {
+        const variations = [];
+        const basePatterns = [pattern, mirrorPatternHorizontal(pattern)];
+        
+        for (const base of basePatterns) {
+            // Find the bounding box of non-empty slots
+            let minRow = 3, maxRow = -1, minCol = 3, maxCol = -1;
+            for (let i = 0; i < 9; i++) {
+                if (base[i]) {
+                    const row = Math.floor(i / 3);
+                    const col = i % 3;
+                    minRow = Math.min(minRow, row);
+                    maxRow = Math.max(maxRow, row);
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
+                }
+            }
+            
+            if (maxRow < 0) continue; // Empty pattern
+            
+            // Try all valid shifts
+            for (let rowOff = -minRow; rowOff <= 2 - maxRow; rowOff++) {
+                for (let colOff = -minCol; colOff <= 2 - maxCol; colOff++) {
+                    const shifted = shiftPattern(base, rowOff, colOff);
+                    if (shifted) {
+                        variations.push(shifted);
+                    }
+                }
+            }
+        }
+        
+        return variations;
+    }
+
+    // Check if guess matches pattern considering wood interchangeability
+    function patternsMatchWithWoodSwap(guess, pattern, recipeName) {
+        for (let i = 0; i < 9; i++) {
+            if (!itemsEquivalent(guess[i], pattern[i], recipeName)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Find what recipe the current guess makes (if any)
+    function findRecipeForGuess(guess) {
+        for (const [recipeName, recipe] of Object.entries(RECIPES)) {
+            if (recipe.shapeless) {
+                if (checkShapelessMatchWithWoodSwap(guess, recipe, recipeName)) {
+                    return recipeName;
+                }
+            } else {
+                const pattern = getRecipePattern(recipe);
+                const variations = getPatternVariations(pattern);
+                
+                for (const variation of variations) {
+                    if (patternsMatchWithWoodSwap(guess, variation, recipeName)) {
+                        return recipeName;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
+    // Check shapeless match with wood interchangeability
+    function checkShapelessMatchWithWoodSwap(guess, recipe, recipeName) {
+        const ingredients = recipe.ingredients || getRecipePattern(recipe).filter(x => x !== '');
+        const guessItems = guess.filter(x => x !== '');
+        
+        if (guessItems.length !== ingredients.length) return false;
+        
+        // Try to match each guess item to an ingredient
+        const usedIngredients = new Set();
+        
+        for (const guessItem of guessItems) {
+            let found = false;
+            for (let i = 0; i < ingredients.length; i++) {
+                if (!usedIngredients.has(i) && itemsEquivalent(guessItem, ingredients[i], recipeName)) {
+                    usedIngredients.add(i);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
+        }
+        
+        return usedIngredients.size === ingredients.length;
+    }
+
+    // Get all unique items in a recipe
+    function getRecipeIngredients(recipeName) {
+        const recipe = RECIPES[recipeName];
+        if (!recipe) return new Set();
+        
+        const pattern = getRecipePattern(recipe);
+        const ingredients = new Set();
+        for (const item of pattern) {
+            if (item) ingredients.add(item);
+        }
+        return ingredients;
+    }
+
+    // Find which categories contain any of the given items
+    function findCategoriesWithItems(items) {
+        const categoriesWithItems = new Set();
+        for (const [categoryName, categoryItems] of Object.entries(CATEGORIES)) {
+            for (const item of items) {
+                if (categoryItems.includes(item)) {
+                    categoriesWithItems.add(categoryName);
+                    break;
+                }
+            }
+        }
+        return categoriesWithItems;
+    }
+
+    // Update category tab highlighting based on recipe ingredients
+    function updateCategoryHighlights() {
+        const ingredients = getRecipeIngredients(currentRecipe);
+        const categoriesWithIngredients = findCategoriesWithItems(ingredients);
+        
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            if (categoriesWithIngredients.has(tab.textContent)) {
+                tab.classList.add('has-ingredient');
+            } else {
+                tab.classList.remove('has-ingredient');
+            }
+        });
+    }
+
+    // Format item name for display (e.g., "oak_planks" -> "Oak Planks")
+    function formatItemName(itemId) {
+        return itemId
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
+    // Show tooltip at position
+    function showTooltip(itemName, x, y) {
+        if (!mcTooltip) return;
+        mcTooltip.textContent = formatItemName(itemName);
+        mcTooltip.classList.add('show');
+        
+        // Position tooltip above and to the right of cursor
+        const tooltipRect = mcTooltip.getBoundingClientRect();
+        let tooltipX = x + 12;
+        let tooltipY = y - 28;
+        
+        // Keep tooltip on screen
+        if (tooltipX + tooltipRect.width > window.innerWidth) {
+            tooltipX = x - tooltipRect.width - 12;
+        }
+        if (tooltipY < 0) {
+            tooltipY = y + 20;
+        }
+        
+        mcTooltip.style.left = tooltipX + 'px';
+        mcTooltip.style.top = tooltipY + 'px';
+    }
+
+    // Hide tooltip
+    function hideTooltip() {
+        if (mcTooltip) {
+            mcTooltip.classList.remove('show');
+        }
+    }
+
+    async function renderToElement(itemName, element, size = 64, status = null) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        element.appendChild(canvas);
+        const bgColor = status ? (STATUS_BG_COLORS[status] || STATUS_BG_COLORS['default']) : STATUS_BG_COLORS['default'];
+        await renderer.render(itemName, canvas, size, bgColor);
+    }
+
+    function clearSlotClasses(el) {
+        el.classList.remove('correct', 'wrong-position', 'wrong', 'close');
+    }
+
+    function initGame() {
+        setupCategories();
+        loadGameMode();
+        updateTimer();
+        setInterval(updateTimer, 1000);
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+        });
+        document.getElementById('submitBtn').addEventListener('click', submitGuess);
+        document.getElementById('clearBtn').addEventListener('click', clearGuess);
+        document.getElementById('modalBtn').addEventListener('click', () => {
+            document.getElementById('gameModal').classList.remove('show');
+            newGame();
+        });
+        
+        // Track mouse movement for drag preview and held item
+        document.addEventListener('mousemove', (e) => {
+            if (draggedItem || heldItem) {
+                dragPreview.style.left = (e.clientX - 30) + 'px';
+                dragPreview.style.top = (e.clientY - 30) + 'px';
+            }
+        });
+        
+        // Handle craft slot interactions
+        document.querySelectorAll('.craft-slot').forEach(slot => {
+            slot.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const slotIndex = parseInt(slot.dataset.slot);
+                
+                if (heldItem) {
+                    // Place held item in slot (swap if slot has item)
+                    const existingItem = currentGuess[slotIndex];
+                    currentGuess[slotIndex] = heldItem;
+                    
+                    if (existingItem) {
+                        // Pick up the existing item
+                        heldItem = existingItem;
+                        heldItemSourceSlot = slotIndex;
+                        dragPreview.innerHTML = '';
+                        await renderToElement(heldItem, dragPreview, 60);
+                    } else {
+                        // Clear held item
+                        heldItem = null;
+                        heldItemSourceSlot = null;
+                        dragPreview.style.display = 'none';
+                        document.body.classList.remove('holding-item');
+                    }
+                    await updateCraftingGrid();
+                    updateResultFromGuess();
+                } else if (currentGuess[slotIndex]) {
+                    // Pick up item from slot
+                    heldItem = currentGuess[slotIndex];
+                    heldItemSourceSlot = slotIndex;
+                    currentGuess[slotIndex] = '';
+                    
+                    document.body.classList.add('holding-item');
+                    dragPreview.innerHTML = '';
+                    await renderToElement(heldItem, dragPreview, 60);
+                    dragPreview.style.display = 'flex';
+                    dragPreview.style.left = (e.clientX - 30) + 'px';
+                    dragPreview.style.top = (e.clientY - 30) + 'px';
+                    
+                    await updateCraftingGrid();
+                    updateResultFromGuess();
+                }
+            });
+            
+            // Handle dropping dragged items from item selector
+            slot.addEventListener('mouseup', async (e) => {
+                if (draggedItem) {
+                    e.preventDefault();
+                    const slotIndex = parseInt(slot.dataset.slot);
+                    currentGuess[slotIndex] = draggedItem;
+                    await updateCraftingGrid();
+                    updateResultFromGuess();
+                    endDrag();
+                }
+            });
+        });
+        
+        // Click anywhere else to delete held item
+        document.addEventListener('click', (e) => {
+            if (heldItem) {
+                // Check if click is outside craft slots
+                const craftingGrid = document.getElementById('craftingGrid');
+                const isInsideCraftingGrid = craftingGrid.contains(e.target);
+                const isItemOption = e.target.closest('.item-option');
+                
+                if (!isInsideCraftingGrid && !isItemOption) {
+                    // Delete the held item
+                    heldItem = null;
+                    heldItemSourceSlot = null;
+                    dragPreview.style.display = 'none';
+                    document.body.classList.remove('holding-item');
+                }
+            }
+        });
+        
+        newGame();
+    }
+
+    async function setupCategories() {
+        const tabsContainer = document.getElementById('categoryTabs');
+        const categories = Object.keys(CATEGORIES);
+        categories.forEach((category, index) => {
+            const tab = document.createElement('div');
+            tab.className = 'category-tab' + (index === 0 ? ' active' : '');
+            tab.textContent = category;
+            tab.addEventListener('click', () => switchCategory(category));
+            tabsContainer.appendChild(tab);
+        });
+        dragPreview = document.createElement('div');
+        dragPreview.className = 'drag-preview';
+        dragPreview.style.display = 'none';
+        document.body.appendChild(dragPreview);
+        
+        // Initialize tooltip reference
+        mcTooltip = document.getElementById('mcTooltip');
+        
+        switchCategory(categories[0]);
+    }
+
+    async function switchCategory(category) {
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            // Only toggle active, preserve has-ingredient class
+            if (tab.textContent === category) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+        const itemsGrid = document.getElementById('itemsGrid');
+        itemsGrid.innerHTML = '';
+        
+        // Get recipe ingredients for "near ingredient" highlighting
+        const recipeIngredients = currentRecipe ? getRecipeIngredients(currentRecipe) : new Set();
+        const categoryItems = CATEGORIES[category];
+        
+        // Build a map of items that are adjacent to recipe ingredients in this category's grid
+        const nearIngredientItems = new Set();
+        for (let i = 0; i < categoryItems.length; i++) {
+            const item = categoryItems[i];
+            if (recipeIngredients.has(item)) {
+                // This item is an ingredient - mark all adjacent items in the grid as "near"
+                const adjacentIndices = getAdjacentIndicesInGrid(i, categoryItems.length, getGridWidth());
+                for (const adjIdx of adjacentIndices) {
+                    const adjItem = categoryItems[adjIdx];
+                    if (adjItem && !recipeIngredients.has(adjItem)) {
+                        nearIngredientItems.add(adjItem);
+                    }
+                }
+            }
+        }
+        
+        for (const item of categoryItems) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'item-option';
+            itemDiv.dataset.item = item;
+            
+            // Get the item's current status for rendering
+            let status = itemStatuses[item] || null;
+            
+            // If item was marked as wrong but is near a recipe ingredient, upgrade to 'close'
+            if (status === 'wrong' && nearIngredientItems.has(item)) {
+                status = 'close';
+            }
+            
+            await renderToElement(item, itemDiv, 60, status);
+
+            // Apply current keyboard-style status (for CSS border/styling)
+            if (itemStatuses[item] === 'wrong' && nearIngredientItems.has(item)) {
+                // Override wrong with close for items near ingredients
+                itemDiv.classList.add('close');
+            } else {
+                applyItemStatusToElement(item, itemDiv);
+            }
+            
+            // Tooltip event listeners
+            itemDiv.addEventListener('mouseenter', (e) => {
+                showTooltip(item, e.clientX, e.clientY);
+            });
+            itemDiv.addEventListener('mousemove', (e) => {
+                showTooltip(item, e.clientX, e.clientY);
+            });
+            itemDiv.addEventListener('mouseleave', () => {
+                hideTooltip();
+            });
+            
+            itemDiv.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                hideTooltip(); // Hide tooltip when starting to drag
+                draggedItem = item;
+                document.body.classList.add('dragging');
+                itemDiv.classList.add('dragging');
+                dragPreview.innerHTML = '';
+                renderToElement(item, dragPreview, 60);
+                dragPreview.style.display = 'flex';
+                dragPreview.style.left = e.clientX - 30 + 'px';
+                dragPreview.style.top = e.clientY - 30 + 'px';
+            });
+            itemsGrid.appendChild(itemDiv);
+        }
+    }
+    
+    // Get the width of the items grid (number of columns)
+    function getGridWidth() {
+        const itemsGrid = document.getElementById('itemsGrid');
+        if (!itemsGrid) return 10; // Default
+        const gridStyle = window.getComputedStyle(itemsGrid);
+        const gridWidth = itemsGrid.offsetWidth;
+        const itemWidth = 60 + 8; // item width + gap
+        return Math.floor(gridWidth / itemWidth) || 10;
+    }
+    
+    // Get adjacent indices in a grid layout
+    function getAdjacentIndicesInGrid(index, totalItems, gridWidth) {
+        const row = Math.floor(index / gridWidth);
+        const col = index % gridWidth;
+        const adjacent = [];
+        
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const newRow = row + dr;
+                const newCol = col + dc;
+                const newIndex = newRow * gridWidth + newCol;
+                
+                // Check bounds
+                if (newRow >= 0 && newCol >= 0 && newCol < gridWidth && newIndex >= 0 && newIndex < totalItems) {
+                    adjacent.push(newIndex);
+                }
+            }
+        }
+        return adjacent;
+    }
+
+    function endDrag() {
+        draggedItem = null;
+        document.body.classList.remove('dragging');
+        document.querySelectorAll('.item-option').forEach(el => el.classList.remove('dragging'));
+        dragPreview.style.display = 'none';
+    }
+
+    function switchMode(mode) {
+        gameMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+        document.getElementById('dailyTimer').style.display = mode === 'daily' ? 'block' : 'none';
+        newGame();
+    }
+
+    async function loadGameMode() {
+        const recipeList = Object.keys(RECIPES);
+        let recipe;
+        if (gameMode === 'daily') {
+            const today = new Date().toDateString();
+            const seed = today.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+            recipe = recipeList[seed % recipeList.length];
+        } else {
+            recipe = recipeList[Math.floor(Math.random() * recipeList.length)];
+        }
+        currentRecipe = recipe;
+        currentResult = null; // Start with blank output
+        
+        // Clear result slot (blank at start)
+        document.getElementById('resultSlot').innerHTML = '';
+        
+        // Highlight categories that contain recipe ingredients
+        updateCategoryHighlights();
+    }
+    
+    // Update result slot based on current guess
+    async function updateResultFromGuess() {
+        const resultSlot = document.getElementById('resultSlot');
+        resultSlot.innerHTML = '';
+        
+        const guessedRecipe = findRecipeForGuess(currentGuess);
+        if (guessedRecipe) {
+            currentResult = guessedRecipe;
+            await renderToElement(guessedRecipe, resultSlot, 80);
+        } else {
+            currentResult = null;
+        }
+    }
+
+    function updateTimer() {
+        const now = new Date();
+        const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const timeLeft = tomorrow - now;
+        const hours = Math.floor((timeLeft / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((timeLeft / 1000 / 60) % 60);
+        const seconds = Math.floor((timeLeft / 1000) % 60);
+        document.getElementById('timeRemaining').textContent = 
+            String(hours).padStart(2, '0') + ':' + 
+            String(minutes).padStart(2, '0') + ':' + 
+            String(seconds).padStart(2, '0');
+    }
+
+async function updateCraftingGrid() {
+    for (let index = 0; index < currentGuess.length; index++) {
+        const item = currentGuess[index];
+        const slot = document.querySelector(`[data-slot="${index}"]`);
+        slot.innerHTML = '';
+        clearSlotClasses(slot);    // <– add this
+        if (item) {
+            await renderToElement(item, slot, 80);
+        }
+    }
+}
+
+
+// Wordle-style evaluation: returns array of 'correct' | 'present' | 'wrong' | 'close'
+function evaluateGuess(guess, recipe) {
+    const recipeName = currentRecipe;
+    let result = Array(9).fill('wrong');
+    const answerPattern = getRecipePattern(recipe);
+    
+    if (recipe.shapeless) {
+        // For shapeless recipes with wood interchangeability
+        const ingredients = recipe.ingredients || answerPattern.filter(x => x !== '');
+        
+        // Build list of ingredient "types" (accounting for wood swap)
+        const availableIngredients = [...ingredients];
+        
+        // Mark items that match an ingredient as 'present'
+        for (let i = 0; i < 9; i++) {
+            const g = guess[i];
+            if (!g) continue;
+            
+            // Find a matching ingredient
+            for (let j = 0; j < availableIngredients.length; j++) {
+                if (itemsEquivalent(g, availableIngredients[j], recipeName)) {
+                    result[i] = 'present';
+                    availableIngredients.splice(j, 1);
+                    break;
+                }
+            }
+        }
+        
+        // If all required ingredients are present with correct counts, mark all as 'correct'
+        if (checkShapelessMatchWithWoodSwap(guess, recipe, recipeName)) {
+            for (let i = 0; i < 9; i++) {
+                if (guess[i] && result[i] === 'present') {
+                    result[i] = 'correct';
+                }
+            }
+        }
+    } else {
+        // Shaped recipe - find best matching variation
+        const variations = getPatternVariations(answerPattern);
+        let bestResult = null;
+        let bestScore = -1;
+        
+        for (const variation of variations) {
+            const varResult = evaluateAgainstPattern(guess, variation, recipeName);
+            const score = varResult.filter(r => r === 'correct').length * 10 + 
+                         varResult.filter(r => r === 'present').length;
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestResult = varResult;
+            }
+        }
+        
+        result = bestResult || result;
+    }
+
+    return result;
+}
+
+// Evaluate guess against a specific pattern variation
+function evaluateAgainstPattern(guess, pattern, recipeName) {
+    const result = Array(9).fill('wrong');
+    const counts = {};
+
+    // Count occurrences of each item type in answer (ignore empty slots)
+    // Group equivalent items together
+    for (let i = 0; i < 9; i++) {
+        const ans = pattern[i];
+        if (ans) {
+            // Use a normalized key for wood types
+            const key = getItemKey(ans, recipeName);
+            counts[key] = (counts[key] || 0) + 1;
+        }
+    }
+
+    // First pass: correct positions (green)
+    for (let i = 0; i < 9; i++) {
+        const g = guess[i];
+        if (!g) continue;
+        if (itemsEquivalent(g, pattern[i], recipeName)) {
+            result[i] = 'correct';
+            const key = getItemKey(pattern[i], recipeName);
+            counts[key] -= 1;
+        }
+    }
+
+    // Second pass: present but wrong position (yellow)
+    for (let i = 0; i < 9; i++) {
+        if (result[i] === 'correct') continue;
+        const g = guess[i];
+        if (!g) continue;
+        
+        // Check if this item type exists in the pattern
+        const key = getItemKey(g, recipeName);
+        if (counts[key] > 0) {
+            result[i] = 'present';
+            counts[key] -= 1;
+        }
+    }
+    
+    return result;
+}
+
+// Get a normalized key for an item (groups equivalent wood types)
+function getItemKey(item, recipeName) {
+    if (!item) return '';
+    if (WOOD_SPECIFIC_RECIPES.has(recipeName)) return item;
+    if (PLANK_TYPES.includes(item)) return '__PLANK__';
+    if (LOG_TYPES.includes(item)) return '__LOG__';
+    return item;
+}
+
+// Update global keyboard-style statuses from a guess
+function updateItemStatusesFromGuess(guess, result) {
+    for (let i = 0; i < 9; i++) {
+        const item = guess[i];
+        if (!item) continue;
+        const status = result[i];
+
+        const prev = itemStatuses[item] || 'unknown';
+        if (status === 'correct') {
+            itemStatuses[item] = 'correct';
+        } else if (status === 'present') {
+            if (prev !== 'correct') itemStatuses[item] = 'present';
+        } else if (status === 'wrong') {
+            if (prev !== 'correct' && prev !== 'present') {
+                itemStatuses[item] = 'wrong';
+            }
+        }
+    }
+}
+
+// Apply stored status to one element (.item-option or a slot)
+function applyItemStatusToElement(item, el) {
+    el.classList.remove('correct', 'wrong-position', 'wrong', 'close');
+    const s = itemStatuses[item];
+    if (s === 'correct') {
+        el.classList.add('correct');
+    } else if (s === 'present') {
+        el.classList.add('wrong-position');
+    } else if (s === 'close') {
+        el.classList.add('close');
+    } else if (s === 'wrong') {
+        el.classList.add('wrong');
+    }
+}
+
+// Re-color all items in the selection grid (keyboard) - re-renders with new background
+async function refreshItemSelectionStatuses() {
+    // Find the currently active category
+    const activeTab = document.querySelector('.category-tab.active');
+    if (activeTab) {
+        await switchCategory(activeTab.textContent);
+    }
+}
+
+
+async function submitGuess() {
+    // Check if guess is empty
+    if (currentGuess.every(x => x === '')) {
+        alert('Place at least one item before submitting a guess.');
+        return;
+    }
+    
+    // Check if the guess forms a valid recipe
+    const guessedRecipe = findRecipeForGuess(currentGuess);
+    if (!guessedRecipe) {
+        alert('Your guess must be a valid crafting recipe!');
+        return;
+    }
+
+    const recipe = RECIPES[currentRecipe];
+
+    // Compute Wordle-style result for this guess
+    const result = evaluateGuess(currentGuess, recipe);
+
+    guesses.push([...currentGuess]);
+    guessResults.push(result);
+    guessOutputs.push(guessedRecipe); // Track what recipe was guessed
+    document.getElementById('guessCount').textContent = guesses.length;
+
+    // Color the current crafting grid
+    for (let i = 0; i < 9; i++) {
+        const slot = document.querySelector(`[data-slot="${i}"]`);
+        clearSlotClasses(slot);
+        if (!currentGuess[i]) continue;
+        if (result[i] === 'correct') {
+            slot.classList.add('correct');
+        } else if (result[i] === 'present') {
+            slot.classList.add('wrong-position');
+        } else {
+            slot.classList.add('wrong');
+        }
+    }
+
+    // Update keyboard-style statuses and refresh item selection colors
+    updateItemStatusesFromGuess(currentGuess, result);
+    await refreshItemSelectionStatuses();
+
+    // Check for win condition - the guess must match the target recipe
+    // (considering wood interchangeability and pattern variations)
+    let isWin = false;
+    if (recipe.shapeless) {
+        isWin = checkShapelessMatchWithWoodSwap(currentGuess, recipe, currentRecipe);
+    } else {
+        const answerPattern = getRecipePattern(recipe);
+        const variations = getPatternVariations(answerPattern);
+        for (const variation of variations) {
+            if (patternsMatchWithWoodSwap(currentGuess, variation, currentRecipe)) {
+                isWin = true;
+                break;
+            }
+        }
+    }
+
+    if (isWin) {
+        showModal('Victory!', `You found the recipe for ${currentRecipe.replace(/_/g, ' ')}!`);
+        document.getElementById('submitBtn').disabled = true;
+    } else if (guesses.length >= 10) {
+        showModal('Game Over!', `The recipe was for ${currentRecipe.replace(/_/g, ' ')}.`);
+        document.getElementById('submitBtn').disabled = true;
+    }
+
+    await updateGuessDisplay();
+    clearGuess();
+}
+
+
+    function clearGuess() {
+        currentGuess = ['', '', '', '', '', '', '', '', ''];
+        updateCraftingGrid();
+        updateResultFromGuess();
+    }
+async function updateGuessDisplay() {
+    const list = document.getElementById('guessesList');
+    list.innerHTML = '';
+    for (let gIndex = 0; gIndex < guesses.length; gIndex++) {
+        const guess = guesses[gIndex];
+        const result = guessResults[gIndex];
+        const outputItem = guessOutputs[gIndex];
+        
+        const row = document.createElement('div');
+        row.className = 'guess-row';
+        
+        // Create the 3x3 grid container
+        const grid = document.createElement('div');
+        grid.className = 'guess-grid';
+        
+        for (let i = 0; i < 9; i++) {
+            const item = guess[i];
+            const slot = document.createElement('div');
+            slot.className = 'guess-slot';
+            if (item) {
+                // Pass the result status for this specific slot to color the 3D background
+                const slotStatus = result[i]; // 'correct', 'present', or 'wrong'
+                await renderToElement(item, slot, 50, slotStatus);
+                if (result[i] === 'correct') {
+                    slot.classList.add('correct');
+                } else if (result[i] === 'present') {
+                    slot.classList.add('wrong-position');
+                } else {
+                    slot.classList.add('wrong');
+                }
+            }
+            grid.appendChild(slot);
+        }
+        row.appendChild(grid);
+        
+        // Add arrow
+        const arrow = document.createElement('div');
+        arrow.className = 'guess-arrow';
+        arrow.textContent = '→';
+        row.appendChild(arrow);
+        
+        // Add output item
+        const output = document.createElement('div');
+        output.className = 'guess-output';
+        if (outputItem) {
+            await renderToElement(outputItem, output, 50);
+        }
+        row.appendChild(output);
+        
+        list.appendChild(row);
+    }
+}
+
+
+    function showModal(title, message) {
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalMessage').textContent = message;
+        document.getElementById('gameModal').classList.add('show');
+    }
+
+    async function newGame() {
+        currentGuess = ['', '', '', '', '', '', '', '', ''];
+        guesses = [];
+        guessResults = [];
+        guessOutputs = [];
+        itemStatuses = {};
+        heldItem = null;
+        heldItemSourceSlot = null;
+        
+        document.getElementById('guessCount').textContent = '0';
+        document.getElementById('guessesList').innerHTML = '';
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('resultSlot').innerHTML = '';
+
+        // Clear held item visual state
+        dragPreview.style.display = 'none';
+        document.body.classList.remove('holding-item');
+
+        // Clear crafting grid colors
+        document.querySelectorAll('.craft-slot').forEach(clearSlotClasses);
+
+        // Reset item selection background statuses
+        refreshItemSelectionStatuses();
+
+        await updateCraftingGrid();
+        await loadGameMode();
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
