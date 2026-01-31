@@ -989,7 +989,7 @@
             this.canvas.width = 128;
             this.canvas.height = 128;
             this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
-            this.renderer.setPixelRatio(10);
+            this.renderer.setPixelRatio(0.1);
 
             // Brighten and add contrast
             this.renderer.outputEncoding = THREE.sRGBEncoding;
