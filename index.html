@@ -27,10 +27,138 @@
             background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 100%);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row;
+            justify-content: center;
             padding: 20px;
+            gap: 20px;
         }
+        
+        /* Stats Sidebar */
+        .stats-sidebar {
+            width: 280px;
+            background: rgba(255,255,255,0.95);
+            border: 6px solid var(--mc-dark-brown);
+            border-radius: 10px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .stats-sidebar h2 {
+            font-size: 1.2em;
+            color: var(--mc-black);
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 3px solid var(--mc-dark-brown);
+            padding-bottom: 10px;
+        }
+        .stats-sidebar h3 {
+            font-size: 0.9em;
+            color: var(--mc-dark-brown);
+            margin: 15px 0 10px 0;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.7em;
+        }
+        .stat-label {
+            color: var(--mc-dark-brown);
+        }
+        .stat-value {
+            color: var(--mc-black);
+            font-weight: bold;
+        }
+        .current-timer {
+            text-align: center;
+            font-size: 1.5em;
+            color: var(--mc-black);
+            background: var(--mc-light);
+            padding: 15px;
+            border-radius: 5px;
+            border: 3px solid var(--mc-dark-brown);
+            margin-bottom: 15px;
+        }
+        .current-score {
+            text-align: center;
+            font-size: 1em;
+            color: #2d5a1a;
+            background: linear-gradient(to bottom, #90EE90 0%, #7ade7a 100%);
+            padding: 12px;
+            border-radius: 5px;
+            border: 3px solid #3d6b27;
+            margin-bottom: 15px;
+        }
+        .score-breakdown {
+            font-size: 0.6em;
+            color: var(--mc-dark-brown);
+            margin-top: 5px;
+        }
+        .win-streak {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: linear-gradient(to bottom, #FFD700 0%, #e6c200 100%);
+            padding: 10px;
+            border-radius: 5px;
+            border: 3px solid #b8960a;
+            margin-bottom: 15px;
+        }
+        .win-streak .streak-icon {
+            font-size: 1.2em;
+        }
+        .win-streak .streak-value {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--mc-black);
+        }
+        .guess-distribution {
+            margin-top: 10px;
+        }
+        .distribution-bar {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 0.6em;
+        }
+        .distribution-label {
+            width: 20px;
+            text-align: right;
+            margin-right: 8px;
+            color: var(--mc-dark-brown);
+        }
+        .distribution-fill {
+            height: 18px;
+            background: linear-gradient(to right, var(--mc-green) 0%, #7ade7a 100%);
+            border-radius: 3px;
+            min-width: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 5px;
+            color: var(--mc-black);
+            font-size: 0.9em;
+        }
+        .reset-stats-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            font-size: 0.7em;
+            background: var(--mc-gray);
+            border: 3px solid #6a6a6a;
+            color: white;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 5px;
+        }
+        .reset-stats-btn:hover {
+            background: #7a7a7a;
+        }
+        
         .container {
             max-width: 1200px;
             width: 100%;
@@ -483,6 +611,70 @@
     </style>
 </head>
 <body>
+    <!-- Stats Sidebar -->
+    <div class="stats-sidebar">
+        <h2>📊 STATS</h2>
+        
+        <div class="current-timer" id="gameTimer">00:00</div>
+        
+        <div class="current-score" id="currentScoreDisplay" style="display: none;">
+            <div>Score: <span id="currentScore">0</span></div>
+            <div class="score-breakdown" id="scoreBreakdown"></div>
+        </div>
+        
+        <div class="win-streak">
+            <span class="streak-icon">🔥</span>
+            <span>Streak:</span>
+            <span class="streak-value" id="winStreak">0</span>
+        </div>
+        
+        <h3>All-Time Stats</h3>
+        <div class="stat-row">
+            <span class="stat-label">Games Played</span>
+            <span class="stat-value" id="gamesPlayed">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Games Won</span>
+            <span class="stat-value" id="gamesWon">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Win Rate</span>
+            <span class="stat-value" id="winRate">0%</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Best Streak</span>
+            <span class="stat-value" id="bestStreak">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Avg Guesses</span>
+            <span class="stat-value" id="avgGuesses">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Best Time</span>
+            <span class="stat-value" id="bestTime">-</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">High Score</span>
+            <span class="stat-value" id="highScore">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Total Score</span>
+            <span class="stat-value" id="totalScore">0</span>
+        </div>
+        
+        <h3>Guess Distribution</h3>
+        <div class="guess-distribution" id="guessDistribution">
+            <div class="distribution-bar"><span class="distribution-label">1</span><div class="distribution-fill" style="width: 25px;">0</div></div>
+            <div class="distribution-bar"><span class="distribution-label">2</span><div class="distribution-fill" style="width: 25px;">0</div></div>
+            <div class="distribution-bar"><span class="distribution-label">3</span><div class="distribution-fill" style="width: 25px;">0</div></div>
+            <div class="distribution-bar"><span class="distribution-label">4</span><div class="distribution-fill" style="width: 25px;">0</div></div>
+            <div class="distribution-bar"><span class="distribution-label">5</span><div class="distribution-fill" style="width: 25px;">0</div></div>
+            <div class="distribution-bar"><span class="distribution-label">6+</span><div class="distribution-fill" style="width: 25px;">0</div></div>
+        </div>
+        
+        <button class="reset-stats-btn" id="resetStatsBtn">Reset Stats</button>
+    </div>
+
     <div class="container">
         <header>
             <h1>MINECRAFTLE</h1>
@@ -1480,6 +1672,189 @@
     let heldItem = null;       // Item being moved within crafting grid
     let heldItemSourceSlot = null; // Original slot of held item
 
+    // Timer and scoring state
+    let gameStartTime = null;
+    let gameTimerInterval = null;
+    let elapsedSeconds = 0;
+    let gameEnded = false;
+
+    // Stats storage key
+    const STATS_KEY = 'minecraftle_stats';
+
+    // Load stats from localStorage
+    function loadStats() {
+        const defaultStats = {
+            gamesPlayed: 0,
+            gamesWon: 0,
+            currentStreak: 0,
+            bestStreak: 0,
+            totalGuesses: 0,
+            totalTime: 0,
+            bestTime: null,
+            highScore: 0,
+            totalScore: 0,
+            guessDistribution: [0, 0, 0, 0, 0, 0] // 1, 2, 3, 4, 5, 6+
+        };
+        try {
+            const saved = localStorage.getItem(STATS_KEY);
+            if (saved) {
+                return { ...defaultStats, ...JSON.parse(saved) };
+            }
+        } catch (e) {
+            console.error('Failed to load stats:', e);
+        }
+        return defaultStats;
+    }
+
+    // Save stats to localStorage
+    function saveStats(stats) {
+        try {
+            localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+        } catch (e) {
+            console.error('Failed to save stats:', e);
+        }
+    }
+
+    // Calculate score based on guesses and time
+    function calculateScore(numGuesses, timeSeconds) {
+        // Base score: start with 1000 points
+        // Deduct points for guesses: -100 per guess after the first
+        // Deduct points for time: -1 point per second after 30 seconds
+        // Minimum score: 100
+        
+        const baseScore = 1000;
+        const guessDeduction = Math.max(0, (numGuesses - 1) * 100);
+        const timeDeduction = Math.max(0, Math.floor((timeSeconds - 30)));
+        
+        const score = Math.max(100, baseScore - guessDeduction - timeDeduction);
+        
+        // Bonus for quick solves
+        let bonus = 0;
+        if (numGuesses === 1) bonus += 500; // Perfect!
+        else if (numGuesses === 2) bonus += 200;
+        else if (numGuesses === 3) bonus += 100;
+        
+        if (timeSeconds < 30) bonus += 100; // Speed bonus
+        else if (timeSeconds < 60) bonus += 50;
+        
+        return score + bonus;
+    }
+
+    // Format time as MM:SS
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    }
+
+    // Start the game timer
+    function startGameTimer() {
+        gameStartTime = Date.now();
+        elapsedSeconds = 0;
+        gameEnded = false;
+        
+        if (gameTimerInterval) {
+            clearInterval(gameTimerInterval);
+        }
+        
+        gameTimerInterval = setInterval(() => {
+            if (!gameEnded) {
+                elapsedSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+                document.getElementById('gameTimer').textContent = formatTime(elapsedSeconds);
+            }
+        }, 1000);
+        
+        document.getElementById('gameTimer').textContent = '00:00';
+    }
+
+    // Stop the game timer
+    function stopGameTimer() {
+        gameEnded = true;
+        if (gameTimerInterval) {
+            clearInterval(gameTimerInterval);
+            gameTimerInterval = null;
+        }
+    }
+
+    // Update the stats display
+    function updateStatsDisplay() {
+        const stats = loadStats();
+        
+        document.getElementById('gamesPlayed').textContent = stats.gamesPlayed;
+        document.getElementById('gamesWon').textContent = stats.gamesWon;
+        document.getElementById('winRate').textContent = stats.gamesPlayed > 0 
+            ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) + '%' 
+            : '0%';
+        document.getElementById('winStreak').textContent = stats.currentStreak;
+        document.getElementById('bestStreak').textContent = stats.bestStreak;
+        document.getElementById('avgGuesses').textContent = stats.gamesWon > 0 
+            ? (stats.totalGuesses / stats.gamesWon).toFixed(1) 
+            : '-';
+        document.getElementById('bestTime').textContent = stats.bestTime !== null 
+            ? formatTime(stats.bestTime) 
+            : '-';
+        document.getElementById('highScore').textContent = stats.highScore;
+        document.getElementById('totalScore').textContent = stats.totalScore;
+        
+        // Update guess distribution
+        const maxDist = Math.max(...stats.guessDistribution, 1);
+        const distContainer = document.getElementById('guessDistribution');
+        const bars = distContainer.querySelectorAll('.distribution-fill');
+        stats.guessDistribution.forEach((count, i) => {
+            const width = Math.max(25, (count / maxDist) * 150);
+            bars[i].style.width = width + 'px';
+            bars[i].textContent = count;
+        });
+    }
+
+    // Record a game result
+    function recordGameResult(won, numGuesses, timeSeconds) {
+        const stats = loadStats();
+        
+        stats.gamesPlayed++;
+        
+        if (won) {
+            stats.gamesWon++;
+            stats.currentStreak++;
+            stats.bestStreak = Math.max(stats.bestStreak, stats.currentStreak);
+            stats.totalGuesses += numGuesses;
+            stats.totalTime += timeSeconds;
+            
+            if (stats.bestTime === null || timeSeconds < stats.bestTime) {
+                stats.bestTime = timeSeconds;
+            }
+            
+            const score = calculateScore(numGuesses, timeSeconds);
+            stats.highScore = Math.max(stats.highScore, score);
+            stats.totalScore += score;
+            
+            // Update guess distribution
+            const distIndex = Math.min(numGuesses - 1, 5);
+            stats.guessDistribution[distIndex]++;
+            
+            // Show current score
+            document.getElementById('currentScore').textContent = score;
+            document.getElementById('scoreBreakdown').textContent = 
+                `${numGuesses} guess${numGuesses > 1 ? 'es' : ''} • ${formatTime(timeSeconds)}`;
+            document.getElementById('currentScoreDisplay').style.display = 'block';
+        } else {
+            stats.currentStreak = 0;
+            document.getElementById('currentScoreDisplay').style.display = 'none';
+        }
+        
+        saveStats(stats);
+        updateStatsDisplay();
+    }
+
+    // Reset all stats
+    function resetStats() {
+        if (confirm('Are you sure you want to reset all your stats? This cannot be undone.')) {
+            localStorage.removeItem(STATS_KEY);
+            updateStatsDisplay();
+            document.getElementById('currentScoreDisplay').style.display = 'none';
+        }
+    }
+
     // Background colors for different statuses
     const STATUS_BG_COLORS = {
         'correct': 0x90EE90,      // Green
@@ -1767,6 +2142,11 @@
         loadGameMode();
         updateTimer();
         setInterval(updateTimer, 1000);
+        
+        // Initialize stats display
+        updateStatsDisplay();
+        document.getElementById('resetStatsBtn').addEventListener('click', resetStats);
+        
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.addEventListener('click', () => switchMode(btn.dataset.mode));
         });
@@ -2291,9 +2671,14 @@ async function submitGuess() {
     }
 
     if (isWin) {
-        showModal('Victory!', `You found the recipe for ${currentRecipe.replace(/_/g, ' ')}!`);
+        stopGameTimer();
+        const score = calculateScore(guesses.length, elapsedSeconds);
+        recordGameResult(true, guesses.length, elapsedSeconds);
+        showModal('Victory!', `You found the recipe for ${currentRecipe.replace(/_/g, ' ')}!\n\nScore: ${score} • Time: ${formatTime(elapsedSeconds)} • Guesses: ${guesses.length}`);
         document.getElementById('submitBtn').disabled = true;
     } else if (guesses.length >= 10) {
+        stopGameTimer();
+        recordGameResult(false, guesses.length, elapsedSeconds);
         showModal('Game Over!', `The recipe was for ${currentRecipe.replace(/_/g, ' ')}.`);
         document.getElementById('submitBtn').disabled = true;
     }
@@ -2381,6 +2766,9 @@ async function updateGuessDisplay() {
         document.getElementById('guessesList').innerHTML = '';
         document.getElementById('submitBtn').disabled = false;
         document.getElementById('resultSlot').innerHTML = '';
+        
+        // Hide current score display for new game
+        document.getElementById('currentScoreDisplay').style.display = 'none';
 
         // Clear held item visual state
         dragPreview.style.display = 'none';
@@ -2394,6 +2782,9 @@ async function updateGuessDisplay() {
 
         await updateCraftingGrid();
         await loadGameMode();
+        
+        // Start the game timer
+        startGameTimer();
     }
 
     initGame();
