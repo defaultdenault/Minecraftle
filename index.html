@@ -986,10 +986,10 @@
         constructor() {
             this.textureLoader = new THREE.TextureLoader();
             this.canvas = document.createElement('canvas');
-            this.canvas.width = 512;
-            this.canvas.height = 512;
+            this.canvas.width = 128;
+            this.canvas.height = 128;
             this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
-            this.renderer.setPixelRatio(1);
+            this.renderer.setPixelRatio(10);
 
             // Brighten and add contrast
             this.renderer.outputEncoding = THREE.sRGBEncoding;
@@ -1162,7 +1162,7 @@
             }
         }
 
-        async render3DBlock(blockName, outputCanvas, size = 512, bgColor = 0xebe3cf) {
+        async render3DBlock(blockName, outputCanvas, size = 128, bgColor = 0xebe3cf) {
             try {
                 let modelName = blockName;
 
