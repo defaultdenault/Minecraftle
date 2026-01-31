@@ -986,8 +986,8 @@
         constructor() {
             this.textureLoader = new THREE.TextureLoader();
             this.canvas = document.createElement('canvas');
-            this.canvas.width = 128;
-            this.canvas.height = 128;
+            this.canvas.width = 512;
+            this.canvas.height = 512;
             this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
             this.renderer.setPixelRatio(1);
 
