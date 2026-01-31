@@ -985,11 +985,12 @@
     class HybridRenderer {
         constructor() {
             this.textureLoader = new THREE.TextureLoader();
-            this.canvas = document.createElement('canvas');
-            this.canvas.width = 128;
-            this.canvas.height = 128;
+            this.canvas = document.createElement('canvas');	
+            this.canvas.width = 256;
+            this.canvas.height = 256;
             this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
-            this.renderer.setPixelRatio(0.1);
+this.renderer.setPixelRatio(window.devicePixelRatio);
+
 
             // Brighten and add contrast
             this.renderer.outputEncoding = THREE.sRGBEncoding;
